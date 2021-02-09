@@ -169,6 +169,8 @@ public class Merging {
     }
 
     public void printInput() {
+        System.out.println("**** INPUT ****");
+
         System.out.println(this.numOfStates + " " + this.numOfTrans);
         for (int i = 0; i < this.numOfStates; i++) {
             System.out.print(this.states[i] + " ");
@@ -480,6 +482,7 @@ public class Merging {
 
             //fix distributions for s1 and s2
             double left = -Math.abs(variation);
+            double negVariation = left;
             for (int j = 0; j < list.size(); j++) {
                 int state = list.get(j);
                 double p1 = 0;
@@ -487,7 +490,7 @@ public class Merging {
                     p1 = trans.get(si).get(state);
                 }
                 if (variation != 0 && j == 0) {
-                    mi.put(state, p1 - variation);
+                    mi.put(state, p1 - negVariation);
                 } else if (j != 0 && p1 > 0) {
                     mi.put(state, p1);
                 }
@@ -534,22 +537,22 @@ public class Merging {
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
+        System.out.println("**** after merge prob bisimilar states ****");
         merge.printOutput();
 
         //merge states
-//        merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap);
-//        merge.printOutput();
-//
-//        merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
-//        merge.printOutput();
-
         while (merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap)) {
             merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
-
         }
+        System.out.println("**** after merging ****");
 
+        merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
         merge.printOutput();
+
         merge.smoothTransitions(merge.newTransitions);
+        System.out.println("**** after soothing ****");
+        merge.printOutput();
+
         merge.writeOutputToFile();
     }
 
