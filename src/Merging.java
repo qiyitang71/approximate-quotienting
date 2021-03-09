@@ -64,15 +64,11 @@ public class Merging {
     public int numOfTrans;
     private Map<Integer, Map<Integer, Double>> transitions;
 
-    private int[] states;
-
     private Map<Integer, Integer> labelMap;
 
     //output
     public int newNumOfStates;
     public int newNumOfTrans;
-
-    private int[] newStates;
 
     private Map<Integer, Integer> newLabelMap;
     private Map<Integer, Map<Integer, Double>> newTransitions = new HashMap<>();
@@ -80,35 +76,50 @@ public class Merging {
 
     public double[] discrepancy;
     public double epsilon2;
-    PrintStream output = null;
+    PrintStream output0, output1 = null;
 
 
     public void readFile(String[] args) {
-        Scanner input = null;
+        Scanner input0 = null;
+        Scanner input1 = null;
 
         // parse input file
-        if (args.length != 3) {
+        if (args.length != 5) {
             System.out.println(
-                    "Use java ValueIteration 0: <inputFile> 1: <outputDistanceFile> 2: <epsilon2>");
+                    "Use java Merging 0: <label> 1: <transition> 2: <outputLabelFile> 3: <outputTransition> 4: <epsilon2>");
             return;
         }
         // process the command line arguments
         try {
-            input = new Scanner(new File(args[0]));
+            input0 = new Scanner(new File(args[0]));
         } catch (FileNotFoundException e) {
             System.out.printf("Input file %s not found%n", args[0]);
             System.exit(1);
         }
 
         try {
-            output = new PrintStream(new File(args[1]));
+            input1 = new Scanner(new File(args[1]));
         } catch (FileNotFoundException e) {
-            System.out.printf("Output file %s not created%n", args[1]);
+            System.out.printf("Input file %s not found%n", args[1]);
             System.exit(1);
         }
 
         try {
-            this.epsilon2 = Double.parseDouble(args[2]);
+            output0 = new PrintStream(new File(args[2]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Output file %s not created%n", args[2]);
+            System.exit(1);
+        }
+
+        try {
+            output1 = new PrintStream(new File(args[3]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Output file %s not created%n", args[3]);
+            System.exit(1);
+        }
+
+        try {
+            this.epsilon2 = Double.parseDouble(args[4]);
             assert this.epsilon2 < 1 : String.format("Discount factor %f should be less than 1", this.epsilon2);
             assert this.epsilon2 > 0 : String.format("Discount factor %f should be greater than 0", this.epsilon2);
         } catch (NumberFormatException e) {
@@ -118,27 +129,29 @@ public class Merging {
 
         //while (input.hasNextInt()) {
         try {
-            this.numOfStates = input.nextInt();
-            this.numOfTrans = input.nextInt();
+            this.labelMap = new HashMap<>();
+            if(input0.hasNextLine()) input0.nextLine();
+            while(input0.hasNextLine()){
+                String line = input0.nextLine();
+                String[] nums = line.split(":\\s");
+                if(nums.length != 2){
+                    System.err.println("label file format problem");
+                }
+                System.out.println(nums[0] +" " + nums[1] );
+                int state = Integer.parseInt(nums[0]);
+                int label = Integer.parseInt(nums[1]);
+                labelMap.put(state, label);
+            }
 
-            this.states = new int[numOfStates];
+            this.numOfStates = input1.nextInt();
+            this.numOfTrans = input1.nextInt();
 
             this.transitions = new HashMap<>();
-            this.labelMap = new HashMap<>();
-
-            for (int i = 0; i < numOfStates; i++) {
-                states[i] = input.nextInt();
-            }
-
-            for (int i = 0; i < numOfStates; i++) {
-                int label = input.nextInt();
-                labelMap.put(states[i], label);
-            }
 
             for (int j = 0; j < numOfTrans; j++) {
-                int state = input.nextInt();
-                int next = input.nextInt();
-                double probability = input.nextDouble();
+                int state = input1.nextInt();
+                int next = input1.nextInt();
+                double probability = input1.nextDouble();
                 transitions.computeIfAbsent(state, x -> new HashMap<>()).put(next, probability);
             }
         } catch (NoSuchElementException e) {
@@ -147,41 +160,16 @@ public class Merging {
         // }
     }
 
-
-    public void printOutput() {
-        System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
-        for (int i = 0; i < this.newNumOfStates; i++) {
-            System.out.print(this.newStates[i] + " ");
-        }
-        System.out.println();
-
-        for (int i : this.newStates) {
-            System.out.print(this.newLabelMap.get(i) + " ");
-        }
-        System.out.println();
-        for (int i : this.newStates) {
-            Map<Integer, Double> map = newTransitions.get(i);
-            for (int state : map.keySet()) {
-                System.out.println(i + " " + state + " " + map.get(state));
-            }
-        }
-        System.out.println();
-    }
-
     public void printInput() {
         System.out.println("**** INPUT ****");
 
         System.out.println(this.numOfStates + " " + this.numOfTrans);
-        for (int i = 0; i < this.numOfStates; i++) {
-            System.out.print(this.states[i] + " ");
-        }
-        System.out.println();
 
-        for (int i : this.states) {
-            System.out.print(this.labelMap.get(i) + " ");
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + "  ");
         }
         System.out.println();
-        for (int i : this.states) {
+        for (int i : this.transitions.keySet()) {
             Map<Integer, Double> map = transitions.get(i);
             for (int state : map.keySet()) {
                 System.out.println(i + " " + state + " " + map.get(state));
@@ -190,47 +178,37 @@ public class Merging {
         System.out.println();
     }
 
-    public void writeInputToFile() {
-        output.println(this.numOfStates + " " + this.numOfTrans);
-        for (int i = 0; i < this.numOfStates; i++) {
-            output.print(this.states[i] + " ");
+    public void printOutput() {
+        System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
+
+        for (int i : this.newLabelMap.keySet()) {
+            System.out.print(i + ": " + this.newLabelMap.get(i) + "  ");
         }
-        output.println();
-
-        for (int i : this.states) {
-            output.print(this.labelMap.get(i) + " ");
-        }
-        output.println();
-
-        for (int i : this.states) {
-            Map<Integer, Double> map = transitions.get(i);
-            for (int state : map.keySet()) {
-                output.println(i + " " + state + " " + map.get(state));
-            }
-        }
-        output.println();
-    }
-
-
-    public void writeOutputToFile() {
-        output.println(this.newNumOfStates + " " + this.newNumOfTrans);
-        for (int i = 0; i < this.newNumOfStates; i++) {
-            output.print(this.newStates[i] + " ");
-        }
-        output.println();
-
-        for (int i : this.newStates) {
-            output.print(this.newLabelMap.get(i) + " ");
-        }
-        output.println();
-
-        for (int i : this.newStates) {
+        System.out.println();
+        for (int i : this.newTransitions.keySet()) {
             Map<Integer, Double> map = newTransitions.get(i);
             for (int state : map.keySet()) {
-                output.println(i + " " + state + " " + map.get(state));
+                System.out.println(i + " " + state + " " + map.get(state));
             }
         }
-        output.println();
+        System.out.println();
+    }
+
+    public void writeOutputToFile() {
+        output1.println(this.newNumOfStates + " " + this.newNumOfTrans);
+
+        output0.println(this.labelMap.values());
+        for (int i : this.labelMap.keySet()) {
+            output0.println(i + ": " + this.labelMap.get(i));
+        }
+
+        for (int i : this.newTransitions.keySet()) {
+            Map<Integer, Double> map = newTransitions.get(i);
+            for (int state : map.keySet()) {
+                output1.println(i + " " + state + " " + map.get(state));
+            }
+        }
+        output1.println();
     }
 
     public List<List<Integer>> partition;
@@ -242,8 +220,8 @@ public class Merging {
         for (int state : trans.keySet()) {
             boolean isAdd = false;
             for (List<Integer> list : partition) {
-                int label = lMap.get(list.get(0));
-                if (lMap.get(state) == label) {
+                int label = lMap.getOrDefault(list.get(0), -1);
+                if (lMap.getOrDefault(state, -1) == label) {
                     list.add(state);
                     isAdd = true;
                     break;
@@ -331,14 +309,12 @@ public class Merging {
     public void mergePartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
         this.newNumOfStates = partition.size();
         this.newLabelMap = new HashMap<>();
-        this.newStates = new int[this.newNumOfStates];
         this.newNumOfTrans = 0;
         this.newTransitions = new HashMap<>();
         for (int i = 0; i < this.newNumOfStates; i++) {
             int rdState = partition.get(i).get(0);
-            int label = lMap.get(rdState);
-            this.newStates[i] = i;
-            this.newLabelMap.put(i, label);
+            int label = lMap.getOrDefault(rdState, -1);
+            if(label != -1) this.newLabelMap.put(i, label);
             for (int j = 0; j < this.newNumOfStates; j++) {
                 List<Integer> l = partition.get(j);
                 double sum = 0;

@@ -20,10 +20,9 @@ public class Sampling {
     private Map<Integer, List<Transition>> transitions;
     private Map<Integer, List<Transition>> samplingTransitions = new HashMap<>();
 
-    private int[] states;
     private Map<Integer, Integer> labelMap;
     public double epsilon, delta;
-    PrintStream output = null;
+    PrintStream output0,output1 = null;
 
 
 //    public Sampling(int numOfStates, Map<Integer, List<Transition>> transitions, int[] labels, double epsilon, double delta, double epsilon2) {
@@ -37,31 +36,46 @@ public class Sampling {
 //    }
 
     public void readFile(String[] args) {
-        Scanner input = null;
+        Scanner input0 = null;
+        Scanner input1 = null;
 
         // parse input file
-        if (args.length != 4) {
+        if (args.length != 6) {
             System.out.println(
-                    "Use java ValueIteration 0: <inputFile> 1: <outputDistanceFile> 2: <epsilon> 3: <delta>");
+                    "Use java ValueIteration 0: <label> 1:<transition> 2: <outputLabel> 3: <outputTransition> 4: <epsilon> 5: <delta>");
             return;
         }
         // process the command line arguments
         try {
-            input = new Scanner(new File(args[0]));
+            input0 = new Scanner(new File(args[0]));
         } catch (FileNotFoundException e) {
             System.out.printf("Input file %s not found%n", args[0]);
             System.exit(1);
         }
 
         try {
-            output = new PrintStream(new File(args[1]));
+            input1 = new Scanner(new File(args[1]));
         } catch (FileNotFoundException e) {
-            System.out.printf("Output file %s not created%n", args[1]);
+            System.out.printf("Input file %s not found%n", args[1]);
             System.exit(1);
         }
 
         try {
-            this.epsilon = Double.parseDouble(args[2]);
+            output0 = new PrintStream(new File(args[2]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Output file %s not created%n", args[2]);
+            System.exit(1);
+        }
+
+        try {
+            output1 = new PrintStream(new File(args[3]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Output file %s not created%n", args[3]);
+            System.exit(1);
+        }
+
+        try {
+            this.epsilon = Double.parseDouble(args[4]);
             assert this.epsilon < 1 : String.format("Discount factor %f should be less than 1", this.epsilon);
             assert this.epsilon > 0 : String.format("Discount factor %f should be greater than 0", this.epsilon);
         } catch (NumberFormatException e) {
@@ -69,7 +83,7 @@ public class Sampling {
             System.exit(1);
         }
         try {
-            this.delta = Double.parseDouble(args[3]);
+            this.delta = Double.parseDouble(args[5]);
             assert this.delta <= 1 : String.format("Accuracy %f should be less than or equal to 1", this.delta);
             assert this.delta > 0 : String.format("Accuracy %f should be greater than 0", this.delta);
         } catch (NumberFormatException e) {
@@ -77,31 +91,35 @@ public class Sampling {
             System.exit(1);
         }
 
-        //while (input.hasNextInt()) {
         try {
-            this.numOfStates = input.nextInt();
-            this.numOfTrans = input.nextInt();
-            this.states = new int[numOfStates];
             this.labelMap = new HashMap<>();
-            transitions = new HashMap<>();
-            for (int i = 0; i < numOfStates; i++) {
-                this.states[i] = input.nextInt();
+            if(input0.hasNextLine()) input0.nextLine();
+            while(input0.hasNextLine()){
+                String line = input0.nextLine();
+                String[] nums = line.split(":\\s");
+                if(nums.length != 2){
+                    System.err.println("label file format problem");
+                }
+                System.out.println(nums[0] +" " + nums[1] );
+                int state = Integer.parseInt(nums[0]);
+                int label = Integer.parseInt(nums[1]);
+                labelMap.put(state, label);
             }
-            for (int i : this.states) {
-                int label = input.nextInt();
-                this.labelMap.put(i, label);
-            }
+
+            this.numOfStates = input1.nextInt();
+            this.numOfTrans = input1.nextInt();
+
+            this.transitions = new HashMap<>();
+
             for (int j = 0; j < numOfTrans; j++) {
-                int row = input.nextInt();
-                int state = input.nextInt();
-                double probability = input.nextDouble();
-                Transition tran = new Transition(state, probability);
-                transitions.computeIfAbsent(row, x -> new ArrayList<>()).add(tran);
+                int state = input1.nextInt();
+                int next = input1.nextInt();
+                double probability = input1.nextDouble();
+                transitions.computeIfAbsent(state, x -> new ArrayList<>()).add(new Transition(next, probability));
             }
         } catch (NoSuchElementException e) {
             System.out.printf("Input file %s not in the correct format%n", args[0]);
         }
-        // }
     }
 
     public void singleExperiment(int state) {
@@ -149,15 +167,13 @@ public class Sampling {
 
     public void printOutput() {
         System.out.println(this.numOfStates + " " + this.numOfTrans);
-        for (int i : this.states) {
-            System.out.print(i + " ");
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + " ");
         }
         System.out.println();
-        for (int i : this.states) {
-            System.out.print(this.labelMap.get(i) + " ");
-        }
-        System.out.println();
-        for (int i : this.states) {
+
+        for (int i : this.samplingTransitions.keySet()) {
             List<Transition> list = samplingTransitions.get(i);
             for (Transition tran : list) {
                 System.out.println(i + " " + tran.state + " " + tran.probability);
@@ -168,15 +184,13 @@ public class Sampling {
 
     public void printInput() {
         System.out.println(this.numOfStates + " " + this.numOfTrans);
-        for (int i : this.states) {
-            System.out.print(i + " ");
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + " ");
         }
         System.out.println();
-        for (int i : this.states) {
-            System.out.print(this.labelMap.get(i) + " ");
-        }
-        System.out.println();
-        for (int i : this.states) {
+
+        for (int i : this.transitions.keySet()) {
             List<Transition> list = transitions.get(i);
             for (Transition tran : list) {
                 System.out.println(i + " " + tran.state + " " + tran.probability);
@@ -186,23 +200,20 @@ public class Sampling {
     }
 
     public void writeToFile() {
-        output.println(this.numOfStates + " " + this.numOfTrans);
-        for (int i : this.states) {
-            output.print(i + " ");
-        }
-        output.println();
+        output1.println(this.numOfStates + " " + this.numOfTrans);
 
-        for (int i : this.states) {
-            output.print(this.labelMap.get(i) + " ");
+        output0.println(this.labelMap.values());
+        for (int i : this.labelMap.keySet()) {
+            output0.println(i + ": " + this.labelMap.get(i));
         }
-        output.println();
-        for (int i : this.states) {
+
+        for (int i : this.samplingTransitions.keySet()) {
             List<Transition> list = samplingTransitions.get(i);
             for (Transition tran : list) {
-                output.println(i + " " + tran.state + " " + tran.probability);
+                output1.println(i + " " + tran.state + " " + tran.probability);
             }
         }
-        output.println();
+        output1.println();
     }
 
     public void smoothTransitions() {
