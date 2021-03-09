@@ -428,11 +428,10 @@ public class Merging {
                     int s1 = list.get(i);
                     int s2 = list.get(j);
                     splitWithPair(s1, s2);
-                    while (split(s1, s2, trans)) {
-                    }
+                    //while (split(s1, s2, trans)) {}
                     Distribution d1 = getDistributionOnPatitions(trans, s1);
                     Distribution d2 = getDistributionOnPatitions(trans, s2);
-                    double localDistance = computeTVDistance(d1, d2);
+                    double localDistance = 2 * computeTVDistance(d1, d2);//l1 distance
                     if (localDistance < min && localDistance < epsilon2) {
                         sp = new StatePair(s1, s2);
                         min = localDistance;
@@ -457,8 +456,7 @@ public class Merging {
         int s2 = sp.state2;
         createInitialPartition(trans, lMap);
         splitWithPair(s1, s2);
-        while (split(s1, s2, trans)) {
-        }
+        //while (split(s1, s2, trans)) { }
         Distribution d1 = getDistributionOnPatitions(trans, s1);
         Distribution d2 = getDistributionOnPatitions(trans, s2);
         Map<Integer, Double> m1 = new HashMap<>();
@@ -544,9 +542,9 @@ public class Merging {
         while (merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap)) {
             merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
         }
-        System.out.println("**** after merging ****");
-
         merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
+
+        System.out.println("**** after merging ****");
         merge.printOutput();
 
         merge.smoothTransitions(merge.newTransitions);

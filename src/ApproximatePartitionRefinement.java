@@ -1,0 +1,387 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.*;
+
+public class ApproximatePartitionRefinement {
+    //input
+    public int numOfStates;
+    public int numOfTrans;
+    private Map<Integer, Map<Integer, Double>> transitions;
+
+    private int[] states;
+
+    private Map<Integer, Integer> labelMap;
+
+    //output
+    public int newNumOfStates;
+    public int newNumOfTrans;
+
+    private int[] newStates;
+
+    private Map<Integer, Integer> newLabelMap;
+    private Map<Integer, Map<Integer, Double>> newTransitions = new HashMap<>();
+
+
+    public double[] discrepancy;
+    public double epsilon2;
+    PrintStream output = null;
+
+
+    public void readFile(String[] args) {
+        Scanner input = null;
+
+        // parse input file
+        if (args.length != 3) {
+            System.out.println(
+                    "Use java ValueIteration 0: <inputFile> 1: <outputDistanceFile> 2: <epsilon2>");
+            return;
+        }
+        // process the command line arguments
+        try {
+            input = new Scanner(new File(args[0]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Input file %s not found%n", args[0]);
+            System.exit(1);
+        }
+
+        try {
+            output = new PrintStream(new File(args[1]));
+        } catch (FileNotFoundException e) {
+            System.out.printf("Output file %s not created%n", args[1]);
+            System.exit(1);
+        }
+
+        try {
+            this.epsilon2 = Double.parseDouble(args[2]);
+            assert this.epsilon2 < 1 : String.format("Discount factor %f should be less than 1", this.epsilon2);
+            assert this.epsilon2 > 0 : String.format("Discount factor %f should be greater than 0", this.epsilon2);
+        } catch (NumberFormatException e) {
+            System.out.println("Discount factor not provided in the right format");
+            System.exit(1);
+        }
+
+        //while (input.hasNextInt()) {
+        try {
+            this.numOfStates = input.nextInt();
+            this.numOfTrans = input.nextInt();
+
+            this.states = new int[numOfStates];
+
+            this.transitions = new HashMap<>();
+            this.labelMap = new HashMap<>();
+
+            for (int i = 0; i < numOfStates; i++) {
+                states[i] = input.nextInt();
+            }
+
+            for (int i = 0; i < numOfStates; i++) {
+                int label = input.nextInt();
+                labelMap.put(states[i], label);
+            }
+
+            for (int j = 0; j < numOfTrans; j++) {
+                int state = input.nextInt();
+                int next = input.nextInt();
+                double probability = input.nextDouble();
+                transitions.computeIfAbsent(state, x -> new HashMap<>()).put(next, probability);
+            }
+        } catch (NoSuchElementException e) {
+            System.out.printf("Input file %s not in the correct format%n", args[0]);
+        }
+        // }
+    }
+
+    public void printInput() {
+        System.out.println("**** INPUT ****");
+
+        System.out.println(this.numOfStates + " " + this.numOfTrans);
+        for (int i = 0; i < this.numOfStates; i++) {
+            System.out.print(this.states[i] + " ");
+        }
+        System.out.println();
+
+        for (int i : this.states) {
+            System.out.print(this.labelMap.get(i) + " ");
+        }
+        System.out.println();
+        for (int i : this.states) {
+            Map<Integer, Double> map = transitions.get(i);
+            for (int state : map.keySet()) {
+                System.out.println(i + " " + state + " " + map.get(state));
+            }
+        }
+        System.out.println();
+    }
+
+    public void printOutput() {
+        System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
+        for (int i = 0; i < this.newNumOfStates; i++) {
+            System.out.print(this.newStates[i] + " ");
+        }
+        System.out.println();
+
+        for (int i : this.newStates) {
+            System.out.print(this.newLabelMap.get(i) + " ");
+        }
+        System.out.println();
+        for (int i : this.newStates) {
+            Map<Integer, Double> map = newTransitions.get(i);
+            for (int state : map.keySet()) {
+                System.out.println(i + " " + state + " " + map.get(state));
+            }
+        }
+        System.out.println();
+    }
+
+    public void writeOutputToFile() {
+        output.println(this.newNumOfStates + " " + this.newNumOfTrans);
+        for (int i = 0; i < this.newNumOfStates; i++) {
+            output.print(this.newStates[i] + " ");
+        }
+        output.println();
+
+        for (int i : this.newStates) {
+            output.print(this.newLabelMap.get(i) + " ");
+        }
+        output.println();
+
+        for (int i : this.newStates) {
+            Map<Integer, Double> map = newTransitions.get(i);
+            for (int state : map.keySet()) {
+                output.println(i + " " + state + " " + map.get(state));
+            }
+        }
+        output.println();
+    }
+
+    public List<List<Integer>> partition;
+
+    //partition the states by their labels
+    public void createInitialPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+        partition = new ArrayList<>();
+
+        for (int state : trans.keySet()) {
+            boolean isAdd = false;
+            for (List<Integer> list : partition) {
+                int label = lMap.get(list.get(0));
+                if (lMap.get(state) == label) {
+                    list.add(state);
+                    isAdd = true;
+                    break;
+                }
+            }
+            //create the new list
+            if (!isAdd) {
+                ArrayList<Integer> list = new ArrayList<>();
+                list.add(state);
+                partition.add(list);
+            }
+        }
+    }
+
+    // return true if split; return false if fixpoint reached
+    // it is the classic partition refinement when epsilon2 == 0
+    public boolean split(Map<Integer, Map<Integer, Double>> trans, double epsilon2) {
+
+        List<List<Integer>> newPartition = new ArrayList<>();
+        List<List<Integer>> tmpPartition = new ArrayList<>(partition);
+        int size = partition.size();
+        for (List<Integer> list : partition) {
+            List<List<Integer>> splitPartition = new ArrayList<>();
+
+            //1st iteration: build a list of distributions
+            Map<Integer, Distribution> distrMap = new HashMap<>();
+            for (int state : list) {
+                Distribution distr = new Distribution(size);
+                for (int i = 0; i < size; i++) {
+                    List<Integer> other = tmpPartition.get(i);
+                    // compute probability to the other partition
+                    double sum = 0;
+                    for (int next : other) {
+                        if (trans.get(state).containsKey(next)) {
+                            sum += trans.get(state).get(next);
+                        }
+                    }
+                    distr.updateEntry(i, sum);
+                }
+                distrMap.put(state, distr);
+            }
+
+
+            //split the states
+            for (int state : list) {
+                Distribution distr = distrMap.get(state);
+                //if isAdd, the state can be added to an existing set
+                boolean isAdd = false;
+                if (epsilon2 == 0) {
+                    for (int i = 0; i < splitPartition.size(); i++) {
+                        List<Integer> l = splitPartition.get(i);
+
+                        int rdState = l.get(0);
+                        if (distr.equals(distrMap.get(rdState))) {
+                            l.add(state);
+                            isAdd = true;
+                            break;
+                        }
+                    }
+                } else { //if epsilon2 > 0
+                    double minAverageL1Distance = 10;
+                    int minList = -1;
+
+                    //go through the splitted sets to find a valid one to join
+                    for (int i = 0; i < splitPartition.size(); i++) {
+                        //sum of L1 distances between the current state and all state in a set
+                        double sumL1Distance = 0;
+                        //the current set
+                        List<Integer> l = splitPartition.get(i);
+                        //if $violate, the set is not valid for the state to join
+                        boolean violate = false;
+                        //go through all states in the list l
+                        for (int rdState : l) {
+                            Distribution rdDistr = distrMap.get(rdState);
+                            double l1Distance = 2 * computeTVDistance(distr, rdDistr);
+                            sumL1Distance += l1Distance;
+                            if (l1Distance > epsilon2) {
+                                violate = true;
+                                break;
+                            }
+                        }
+                        if(!violate){
+                            double currentAvgL1Distance = sumL1Distance/l.size();
+                            if(currentAvgL1Distance < minAverageL1Distance){
+                                minAverageL1Distance = currentAvgL1Distance;
+                                minList = i;
+                            }
+                        }
+                        //add the state to a set if there is a valid min set
+                        if(i == splitPartition.size() - 1 && minList >= 0){
+                            isAdd = true;
+                            List<Integer> minL = splitPartition.get(minList);
+                            minL.add(state);
+                        }
+                    }
+                }
+                //if not possible to add, create a new set
+                if (!isAdd) {
+                    ArrayList<Integer> l = new ArrayList<>();
+                    l.add(state);
+                    splitPartition.add(l);
+                }
+            }
+            newPartition.addAll(splitPartition);
+        }
+
+        //compare the new partition and the old one
+        if (partition.size() == newPartition.size()) {
+            return false;
+        }
+
+        partition = newPartition;
+        return true;
+    }
+
+    public double computeTVDistance(Distribution d1, Distribution d2) {
+        if (d1.size != d2.size) {
+            System.err.println("tv distance size match");
+            return -1;
+        }
+        double sum = 0;
+        for (int i = 0; i < d1.size; i++) {
+            double p1 = d1.getProbability(i);
+            double p2 = d2.getProbability(i);
+            if (p1 > p2) {
+                sum += (p1 - p2);
+            }
+        }
+        return sum;
+    }
+
+    public void mergePartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+        this.newNumOfStates = partition.size();
+        this.newLabelMap = new HashMap<>();
+        this.newStates = new int[this.newNumOfStates];
+        this.newNumOfTrans = 0;
+        this.newTransitions = new HashMap<>();
+        for (int i = 0; i < this.newNumOfStates; i++) {
+            List<Integer> currentSet = partition.get(i);
+            int rdState = currentSet.get(0);
+            int label = lMap.get(rdState);
+            this.newStates[i] = i;
+            this.newLabelMap.put(i, label);
+            for (int j = 0; j < this.newNumOfStates; j++) {
+                List<Integer> l = partition.get(j);
+                double sumTransition = 0;
+                for(int k: currentSet) {
+                    for (int next : l) {
+                        if (trans.get(k).containsKey(next)) {
+                            sumTransition += trans.get(k).get(next);
+                        }
+                    }
+                }
+                if (sumTransition > 0) {
+                    this.newNumOfTrans++;
+                    double avgTransition = sumTransition/currentSet.size();
+                    this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, avgTransition);
+                }
+            }
+        }
+    }
+
+    //classic partition refinement
+    public void partitionRefine(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+        createInitialPartition(trans, lMap);
+        while (split(trans, 0)) {}
+        mergePartition(trans, lMap);
+    }
+
+    // states merged if true
+    public boolean approximatePartitionRefine(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+        int prev = lMap.size();
+        createInitialPartition(trans, lMap);
+        while (split(trans, epsilon2)) {}
+        mergePartition(trans, lMap);
+        return this.newNumOfStates != prev;
+    }
+
+    public void smoothTransitions(Map<Integer, Map<Integer, Double>> trans) {
+        for (int state : trans.keySet()) {
+            Map<Integer, Double> map = trans.get(state);
+            int len = map.size();
+            double sum = 0;
+            int i = 0;
+            for (int next : map.keySet()) {
+                if (i == len - 1) {
+                    map.put(next, 1 - sum);
+                    break;
+                }
+                sum += map.get(next);
+                i++;
+            }
+
+        }
+    }
+
+    public static void main(String[] args) {
+        ApproximatePartitionRefinement merge = new ApproximatePartitionRefinement();
+        merge.readFile(args);
+        merge.printInput();
+
+        //compute probabilistic bisimulation
+        merge.partitionRefine(merge.transitions, merge.labelMap);
+        System.out.println("**** after merge prob bisimilar states ****");
+        merge.printOutput();
+
+        //merge states
+        while (merge.approximatePartitionRefine(merge.newTransitions, merge.newLabelMap)) {
+        }
+        System.out.println("**** after merging ****");
+        merge.printOutput();
+
+        merge.smoothTransitions(merge.newTransitions);
+        System.out.println("**** after soothing ****");
+        merge.printOutput();
+
+        merge.writeOutputToFile();
+    }
+}
