@@ -312,24 +312,29 @@ public class Merging {
         this.newNumOfTrans = 0;
         this.newTransitions = new HashMap<>();
         for (int i = 0; i < this.newNumOfStates; i++) {
-            int rdState = partition.get(i).get(0);
+            List<Integer> currentSet = partition.get(i);
+            int rdState = currentSet.get(0);
             int label = lMap.getOrDefault(rdState, -1);
-            if(label != -1) this.newLabelMap.put(i, label);
+            if(label != -1)  this.newLabelMap.put(i, label);
             for (int j = 0; j < this.newNumOfStates; j++) {
                 List<Integer> l = partition.get(j);
-                double sum = 0;
-                for (int next : l) {
-                    if (trans.get(rdState).containsKey(next)) {
-                        sum += trans.get(rdState).get(next);
+                double sumTransition = 0;
+                for(int k: currentSet) {
+                    for (int next : l) {
+                        if (trans.get(k).containsKey(next)) {
+                            sumTransition += trans.get(k).get(next);
+                        }
                     }
                 }
-                if (sum > 0) {
+                if (sumTransition > 0) {
                     this.newNumOfTrans++;
-                    this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, sum);
+                    double avgTransition = sumTransition/currentSet.size();
+                    this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, avgTransition);
                 }
             }
         }
     }
+
 
     public double computeTVDistance(Distribution d1, Distribution d2) {
         if (d1.size != d2.size) {
@@ -370,7 +375,7 @@ public class Merging {
         return distr;
     }
 
-    public boolean splitWithPair(int s1, int s2) {
+    public void splitWithPair(int s1, int s2) {
         List<List<Integer>> newPartition = new ArrayList<>();
         for (int i = 0; i < this.partition.size(); i++) {
             List<Integer> list = this.partition.get(i);
@@ -390,13 +395,11 @@ public class Merging {
                 newPartition.add(list);
             }
         }
-        int prev = this.partition.size();
         this.partition = newPartition;
-        return prev != this.partition.size();
     }
 
     public StatePair getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
-        double min = 1;
+        double min = 2;
         StatePair sp = null;
         for (List<Integer> list : partition) {
             if (list.size() <= 1) continue;
@@ -421,6 +424,7 @@ public class Merging {
         return sp;
     }
 
+
     //return false if no merge
     public boolean mergeSinglePair(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
         createInitialPartition(trans, lMap);
@@ -435,6 +439,8 @@ public class Merging {
         createInitialPartition(trans, lMap);
         splitWithPair(s1, s2);
         while (split(s1, s2, trans)) {}
+        mergePartition(trans, lMap);
+        /**
         Distribution d1 = getDistributionOnPatitions(trans, s1);
         Distribution d2 = getDistributionOnPatitions(trans, s2);
         Map<Integer, Double> m1 = new HashMap<>();
@@ -448,19 +454,25 @@ public class Merging {
             int sj = s2;
             Map<Integer, Double> mi = m1;
             Map<Integer, Double> mj = m2;
+
+            double left = -variation;
+            double negVariation = -left;
+
             //si needs to be increased
             if (variation > 0) {
                 si = s2;
                 sj = s1;
                 mi = m2;
                 mj = m1;
+                left = variation;
+                negVariation = -variation;
             }
 
             //fix distributions for s1 and s2
-            double left = -Math.abs(variation);
-            double negVariation = left;
             for (int j = 0; j < list.size(); j++) {
                 int state = list.get(j);
+
+                // increase the probability
                 double p1 = 0;
                 if (trans.get(si).containsKey(state)) {
                     p1 = trans.get(si).get(state);
@@ -470,15 +482,15 @@ public class Merging {
                 } else if (j != 0 && p1 > 0) {
                     mi.put(state, p1);
                 }
-
+                // decrease the probability
                 double p2 = 0;
                 if (trans.get(sj).containsKey(state)) {
                     p2 = trans.get(sj).get(state);
                 }
-                if (p2 <= Math.abs(left)) {
-                    left += p2;
+                if (p2 <= left) {
+                    left -= p2;
                 } else {
-                    mj.put(state, p2 + left);
+                    mj.put(state, p2 - left);
                     left = 0;
                 }
             }
@@ -486,6 +498,7 @@ public class Merging {
         tmpTransitions.replace(s1, m1);
         tmpTransitions.replace(s2, m2);
         this.newTransitions = tmpTransitions;
+        */
         return true;
     }
 

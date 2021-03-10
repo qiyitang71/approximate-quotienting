@@ -17,7 +17,7 @@ epsilon1=0.0001
 delta=0.99 
 epsilon2=0.0001
 fileError="$resultdir"/errors.log
-
+{
 for file in $modeldir/*.tra; do
   echo $file
   filename=$(echo $file | rev | cut -d / -f 1 | rev | cut -d "." -f 1)
@@ -37,12 +37,12 @@ for file in $modeldir/*.tra; do
 
   #-Xss20480k
   echo "Sampling $filename"
-  java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta | tee $fileError
+  java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta 
 
-  echo "Local Merge $filename"
-  java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 | tee $fileError
-
-  #echo "Approx Partition Refinement $filename"
-  java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 | tee $fileError
-
+  echo "Local Distance $filename"
+  java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 
+ 
+  echo "Approx Partition Refinement $filename"
+  java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 
 done
+} | tee $fileError
