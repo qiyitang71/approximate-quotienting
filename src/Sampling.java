@@ -102,7 +102,7 @@ public class Sampling {
                 }
                 System.out.println(nums[0] +" " + nums[1] );
                 int state = Integer.parseInt(nums[0]);
-                int label = Integer.parseInt(nums[1]);
+                int label = nums[1].hashCode();
                 labelMap.put(state, label);
             }
 

@@ -3,8 +3,8 @@
 working_folder="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
 srcdir="$working_folder"/src
 classdir="$working_folder"/bin
-modeldir="$working_folder"/models/leader
-resultdir="$working_folder"/results/leader
+modeldir="$working_folder"/models/Herman
+resultdir="$working_folder"/results/Herman
 
 
 # compile
@@ -16,7 +16,7 @@ mkdir -p $resultdir
 epsilon1=0.0001 
 delta=0.99 
 epsilon2=0.0001
-fileError=errors.log
+fileError="$resultdir"/errors.log
 
 for file in $modeldir/*.tra; do
   echo $file
@@ -37,12 +37,12 @@ for file in $modeldir/*.tra; do
 
   #-Xss20480k
   echo "Sampling $filename"
-  java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
+  java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta | tee $fileError
 
   echo "Local Merge $filename"
-  java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 
+  java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 | tee $fileError
 
   #echo "Approx Partition Refinement $filename"
-  java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 
+  java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 | tee $fileError
 
 done
