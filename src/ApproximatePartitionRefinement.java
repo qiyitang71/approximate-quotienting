@@ -111,7 +111,7 @@ public class ApproximatePartitionRefinement {
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
         for (int i : this.labelMap.keySet()) {
-            System.out.print(i + ": " + this.newLabelMap.get(i) + "  ");
+            System.out.print(i + ": " + this.labelMap.get(i) + "  ");
         }
         System.out.println();
         for (int i : this.transitions.keySet()) {
@@ -336,7 +336,7 @@ public class ApproximatePartitionRefinement {
 
     // states merged if true
     public boolean approximatePartitionRefine(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
-        int prev = lMap.size();
+        int prev = trans.size();
         createInitialPartition(trans, lMap);
         while (split(trans, epsilon2)) {}
         mergePartition(trans, lMap);

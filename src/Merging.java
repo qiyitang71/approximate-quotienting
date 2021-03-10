@@ -244,7 +244,7 @@ public class Merging {
         List<List<Integer>> tmpPartition = new ArrayList<>(partition);
         int size = partition.size();
         for (List<Integer> list : partition) {
-            if (s1 >= 0) {
+            if (s1 >= 0 && list.contains(s1)) {
                 newPartition.add(list);
                 continue;
             }
@@ -370,7 +370,7 @@ public class Merging {
         return distr;
     }
 
-    public void splitWithPair(int s1, int s2) {
+    public boolean splitWithPair(int s1, int s2) {
         List<List<Integer>> newPartition = new ArrayList<>();
         for (int i = 0; i < this.partition.size(); i++) {
             List<Integer> list = this.partition.get(i);
@@ -390,7 +390,9 @@ public class Merging {
                 newPartition.add(list);
             }
         }
+        int prev = this.partition.size();
         this.partition = newPartition;
+        return prev != this.partition.size();
     }
 
     public StatePair getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
@@ -404,7 +406,7 @@ public class Merging {
                     int s1 = list.get(i);
                     int s2 = list.get(j);
                     splitWithPair(s1, s2);
-                    //while (split(s1, s2, trans)) {}
+                    while (split(s1, s2, trans)) {}
                     Distribution d1 = getDistributionOnPatitions(trans, s1);
                     Distribution d2 = getDistributionOnPatitions(trans, s2);
                     double localDistance = 2 * computeTVDistance(d1, d2);//l1 distance
@@ -432,7 +434,7 @@ public class Merging {
         int s2 = sp.state2;
         createInitialPartition(trans, lMap);
         splitWithPair(s1, s2);
-        //while (split(s1, s2, trans)) { }
+        while (split(s1, s2, trans)) {}
         Distribution d1 = getDistributionOnPatitions(trans, s1);
         Distribution d2 = getDistributionOnPatitions(trans, s2);
         Map<Integer, Double> m1 = new HashMap<>();

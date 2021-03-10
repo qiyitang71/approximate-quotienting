@@ -37,12 +37,12 @@ for file in $modeldir/*.tra; do
 
   #-Xss20480k
   echo "Sampling $filename"
-  #java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
+  java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
 
   echo "Local Merge $filename"
   java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 
 
   #echo "Approx Partition Refinement $filename"
-  #java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 
+  java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 
 
 done
