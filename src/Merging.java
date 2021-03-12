@@ -78,6 +78,7 @@ public class Merging {
     public double epsilon2;
     PrintStream output0, output1 = null;
 
+    public int iter = 0;
 
     public void readFile(String[] args) {
         Scanner input0 = null;
@@ -135,9 +136,9 @@ public class Merging {
                 String line = input0.nextLine();
                 String[] nums = line.split(":\\s");
                 if(nums.length != 2){
+                    System.err.println(nums[0] +" " + nums[1] );
                     System.err.println("label file format problem");
                 }
-                System.out.println(nums[0] +" " + nums[1] );
                 int state = Integer.parseInt(nums[0]);
                 int label = nums[1].hashCode();
                 labelMap.put(state, label);
@@ -192,6 +193,25 @@ public class Merging {
             }
         }
         System.out.println();
+    }
+
+    public void printInputSimple() {
+        System.out.println(this.numOfStates + " " + this.numOfTrans);
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + "  ");
+        }
+        System.out.println();
+    }
+
+    public void printOutputSimple() {
+        System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
+
+        for (int i : this.newLabelMap.keySet()) {
+            System.out.print(i + ": " + this.newLabelMap.get(i) + "  ");
+        }
+        System.out.println();
+        System.out.println("Number of iterations = " + iter);
     }
 
     public void writeOutputToFile() {
@@ -440,65 +460,7 @@ public class Merging {
         splitWithPair(s1, s2);
         while (split(s1, s2, trans)) {}
         mergePartition(trans, lMap);
-        /**
-        Distribution d1 = getDistributionOnPatitions(trans, s1);
-        Distribution d2 = getDistributionOnPatitions(trans, s2);
-        Map<Integer, Double> m1 = new HashMap<>();
-        Map<Integer, Double> m2 = new HashMap<>();
-
-        int size = d1.size;
-        for (int i = 0; i < size; i++) {
-            double variation = (d1.getProbability(i) - d2.getProbability(i)) / 2.0;
-            List<Integer> list = partition.get(i);
-            int si = s1;
-            int sj = s2;
-            Map<Integer, Double> mi = m1;
-            Map<Integer, Double> mj = m2;
-
-            double left = -variation;
-            double negVariation = -left;
-
-            //si needs to be increased
-            if (variation > 0) {
-                si = s2;
-                sj = s1;
-                mi = m2;
-                mj = m1;
-                left = variation;
-                negVariation = -variation;
-            }
-
-            //fix distributions for s1 and s2
-            for (int j = 0; j < list.size(); j++) {
-                int state = list.get(j);
-
-                // increase the probability
-                double p1 = 0;
-                if (trans.get(si).containsKey(state)) {
-                    p1 = trans.get(si).get(state);
-                }
-                if (variation != 0 && j == 0) {
-                    mi.put(state, p1 - negVariation);
-                } else if (j != 0 && p1 > 0) {
-                    mi.put(state, p1);
-                }
-                // decrease the probability
-                double p2 = 0;
-                if (trans.get(sj).containsKey(state)) {
-                    p2 = trans.get(sj).get(state);
-                }
-                if (p2 <= left) {
-                    left -= p2;
-                } else {
-                    mj.put(state, p2 - left);
-                    left = 0;
-                }
-            }
-        }
-        tmpTransitions.replace(s1, m1);
-        tmpTransitions.replace(s2, m2);
-        this.newTransitions = tmpTransitions;
-        */
+        iter++;
         return true;
     }
 
@@ -522,12 +484,13 @@ public class Merging {
     public static void main(String[] args) {
         Merging merge = new Merging();
         merge.readFile(args);
-        merge.printInput();
+        //System.out.println("**** input local distance ****");
+        //merge.printInputSimple();
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        System.out.println("**** after merge prob bisimilar states ****");
-        merge.printOutput();
+        System.out.println("************ output local distance quotient ************");
+        merge.printOutputSimple();
 
         //merge states
         while (merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap)) {
@@ -535,12 +498,10 @@ public class Merging {
         }
         merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
 
-        System.out.println("**** after merging ****");
-        merge.printOutput();
+        System.out.println("************ output local distance merging ************");
+        merge.printOutputSimple();
 
         merge.smoothTransitions(merge.newTransitions);
-        System.out.println("**** after soothing ****");
-        merge.printOutput();
 
         merge.writeOutputToFile();
     }

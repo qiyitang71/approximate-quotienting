@@ -23,6 +23,7 @@ public class ApproximatePartitionRefinement {
     public double epsilon2;
     PrintStream output0, output1 = null;
 
+    public int iter = 0;
 
     public void readFile(String[] args) {
         Scanner input0 = null;
@@ -80,9 +81,10 @@ public class ApproximatePartitionRefinement {
                 String line = input0.nextLine();
                 String[] nums = line.split(":\\s");
                 if(nums.length != 2){
+                    System.err.println(nums[0] +" " + nums[1] );
                     System.err.println("label file format problem");
                 }
-                System.out.println(nums[0] +" " + nums[1] );
+
                 int state = Integer.parseInt(nums[0]);
                 int label = nums[1].hashCode();
                 labelMap.put(state, label);
@@ -106,7 +108,6 @@ public class ApproximatePartitionRefinement {
     }
 
     public void printInput() {
-        System.out.println("**** INPUT ****");
 
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
@@ -123,6 +124,9 @@ public class ApproximatePartitionRefinement {
         System.out.println();
     }
 
+
+
+
     public void printOutput() {
         System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
 
@@ -137,6 +141,26 @@ public class ApproximatePartitionRefinement {
             }
         }
         System.out.println();
+    }
+
+    public void printInputSimple() {
+        System.out.println(this.numOfStates + " " + this.numOfTrans);
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + "  ");
+        }
+        System.out.println();
+    }
+
+    public void printOutputSimple() {
+
+        System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
+
+        for (int i : this.newLabelMap.keySet()) {
+            System.out.print(i + ": " + this.newLabelMap.get(i) + "  ");
+        }
+        System.out.println();
+        System.out.println("Number of iterations = " + iter);
     }
 
     public void writeOutputToFile() {
@@ -340,7 +364,11 @@ public class ApproximatePartitionRefinement {
         createInitialPartition(trans, lMap);
         while (split(trans, epsilon2)) {}
         mergePartition(trans, lMap);
-        return this.newNumOfStates != prev;
+        if( this.newNumOfStates != prev) {
+            iter++;
+            return true;
+        }
+        return false;
     }
 
     public void smoothTransitions(Map<Integer, Map<Integer, Double>> trans) {
@@ -364,22 +392,21 @@ public class ApproximatePartitionRefinement {
     public static void main(String[] args) {
         ApproximatePartitionRefinement merge = new ApproximatePartitionRefinement();
         merge.readFile(args);
-        merge.printInput();
+        //System.out.println("************ input approx partition-refinement ************");
+        //merge.printInputSimple();
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        System.out.println("**** after merge prob bisimilar states ****");
-        merge.printOutput();
+        System.out.println("************ output approx partition-refinement quotient ************");
+        merge.printOutputSimple();
 
         //merge states
         while (merge.approximatePartitionRefine(merge.newTransitions, merge.newLabelMap)) {
         }
-        System.out.println("**** after merging ****");
-        merge.printOutput();
+        System.out.println("************ output approx partition-refinement merging ************");
+        merge.printOutputSimple();
 
         merge.smoothTransitions(merge.newTransitions);
-        System.out.println("**** after soothing ****");
-        merge.printOutput();
 
         merge.writeOutputToFile();
     }

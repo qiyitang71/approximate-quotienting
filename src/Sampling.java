@@ -98,9 +98,9 @@ public class Sampling {
                 String line = input0.nextLine();
                 String[] nums = line.split(":\\s");
                 if(nums.length != 2){
+                    System.err.println(nums[0] +" " + nums[1] );
                     System.err.println("label file format problem");
                 }
-                System.out.println(nums[0] +" " + nums[1] );
                 int state = Integer.parseInt(nums[0]);
                 int label = nums[1].hashCode();
                 labelMap.put(state, label);
@@ -130,9 +130,13 @@ public class Sampling {
             return;
         }
 
-        long totalCnt = (long) Math.ceil(numTran / (4 * this.epsilon * this.epsilon * this.delta));
+        double totalCnt = Math.ceil(numTran * 1.0/ (4 * this.epsilon * this.epsilon * this.delta));
+        //System.out.println("state: " + state + ", total cnt = " + totalCnt);
         Map<Integer, Long> cntMap = new HashMap<>();
-        for (int i = 0; i < totalCnt; i++) {
+        for (long i = 0; i < totalCnt; i++) {
+            if(i < 0){
+                System.err.println("ERROR: total cnt = " + totalCnt + " too large");
+            }
             double rnd = new Random().nextDouble();
             double sum = 0;
             for (Transition tran : list) {
@@ -142,7 +146,8 @@ public class Sampling {
                 if (rnd <= sum) {
                     if (cntMap.containsKey(next)) {
                         long cnt = cntMap.get(next);
-                        cntMap.replace(next, ++cnt);
+                        cnt = cnt+1;
+                        cntMap.replace(next, cnt);
                     } else {
                         cntMap.put(next, 1l);
                     }
@@ -182,6 +187,18 @@ public class Sampling {
         System.out.println();
     }
 
+    public void printOutputSimple() {
+        System.out.println("************ output sampled ************");
+
+        System.out.println(this.numOfStates + " " + this.numOfTrans);
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + " ");
+        }
+        System.out.println();
+
+    }
+
     public void printInput() {
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
@@ -197,6 +214,18 @@ public class Sampling {
             }
         }
         System.out.println();
+    }
+
+    public void printInputSimple() {
+        System.out.println("************ input SUL ************");
+
+        System.out.println(this.numOfStates + " " + this.numOfTrans);
+
+        for (int i : this.labelMap.keySet()) {
+            System.out.print(i + ": " + this.labelMap.get(i) + " ");
+        }
+        System.out.println();
+
     }
 
     public void writeToFile() {
@@ -235,11 +264,10 @@ public class Sampling {
     public static void main(String[] args) {
         Sampling sampling = new Sampling();
         sampling.readFile(args);
-        sampling.printInput();
+        sampling.printInputSimple();
         sampling.experiment();
-        sampling.printOutput();
+        sampling.printOutputSimple();
         sampling.smoothTransitions();
-        sampling.printOutput();
         sampling.writeToFile();
     }
 
