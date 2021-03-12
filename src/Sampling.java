@@ -2,6 +2,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.IntStream;
 
 
 class Transition {
@@ -18,7 +20,7 @@ public class Sampling {
     public int numOfStates;
     public int numOfTrans;
     private Map<Integer, List<Transition>> transitions;
-    private Map<Integer, List<Transition>> samplingTransitions = new HashMap<>();
+    private Map<Integer, List<Transition>> samplingTransitions = new ConcurrentHashMap<>();
 
     private Map<Integer, Integer> labelMap;
     public double epsilon, delta;
@@ -165,9 +167,9 @@ public class Sampling {
     }
 
     public void experiment() {
-        for (int i = 0; i < this.numOfStates; i++) {
-            singleExperiment(i);
-        }
+        IntStream.range(0, this.numOfStates)
+                .parallel()
+                .forEach(this::singleExperiment);
     }
 
     public void printOutput() {
