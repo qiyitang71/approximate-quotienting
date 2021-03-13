@@ -17,17 +17,17 @@ epsilon1=0.00001
 delta=0.99 
 
 
-for file in $modeldir/*.tra; do
+for file in $modeldir/*7.tra; do
   #echo $file
   fileNameSim=$(echo $file | rev | cut -d / -f 1 | rev | cut -d "." -f 1)
   echo $fileNameSim
 
   #repeat 5 times for each model
-  for i in {1..5}
+  for i in {1..2}
   do
-    fileLog="$resultdir"/log-"$i".log
+    filename="$fileNameSim"-"$i"
+    fileLog="$resultdir"/"$filename".log
     {
-      filename="$fileNameSim"-"$i"
 
       inputLab="$modeldir"/"$fileNameSim".lab
       inputTra="$modeldir"/"$fileNameSim".tra
