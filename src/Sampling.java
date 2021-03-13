@@ -135,11 +135,12 @@ public class Sampling {
         double totalCnt = Math.ceil(numTran * 1.0/ (4 * this.epsilon * this.epsilon * this.delta));
         //System.out.println("state: " + state + ", total cnt = " + totalCnt);
         Map<Integer, Long> cntMap = new HashMap<>();
+        Random random = new Random();
         for (long i = 0; i < totalCnt; i++) {
             if(i < 0){
                 System.err.println("ERROR: total cnt = " + totalCnt + " too large");
             }
-            double rnd = new Random().nextDouble();
+            double rnd = random.nextDouble();
             double sum = 0;
             for (Transition tran : list) {
                 int next = tran.state;
