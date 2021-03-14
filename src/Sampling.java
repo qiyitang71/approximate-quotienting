@@ -24,7 +24,7 @@ public class Sampling {
 
     private Map<Integer, Integer> labelMap;
     public double epsilon, delta;
-    PrintStream output0,output1 = null;
+    PrintStream output0, output1 = null;
 
 
 //    public Sampling(int numOfStates, Map<Integer, List<Transition>> transitions, int[] labels, double epsilon, double delta, double epsilon2) {
@@ -95,12 +95,12 @@ public class Sampling {
 
         try {
             this.labelMap = new HashMap<>();
-            if(input0.hasNextLine()) input0.nextLine();
-            while(input0.hasNextLine()){
+            if (input0.hasNextLine()) input0.nextLine();
+            while (input0.hasNextLine()) {
                 String line = input0.nextLine();
                 String[] nums = line.split(":\\s");
-                if(nums.length != 2){
-                    System.err.println(nums[0] +" " + nums[1] );
+                if (nums.length != 2) {
+                    System.err.println(nums[0] + " " + nums[1]);
                     System.err.println("label file format problem");
                 }
                 int state = Integer.parseInt(nums[0]);
@@ -132,14 +132,36 @@ public class Sampling {
             return;
         }
 
-        double totalCnt = Math.ceil(numTran * 1.0/ (4 * this.epsilon * this.epsilon * this.delta));
-        //System.out.println("state: " + state + ", total cnt = " + totalCnt);
-        Map<Integer, Long> cntMap = new HashMap<>();
+        int threads = 12;
+        long totalCntPerThread = (long) Math.ceil(numTran * 1.0 / (4 * this.epsilon * this.epsilon * this.delta) / threads);
+        long totalCnt = totalCntPerThread * threads;
+        System.err.println("state: " + state + "/" + numOfStates + ", total cnt = " + totalCnt);
+
+        long[] cntMap = IntStream.range(0, threads)
+                .parallel()
+                .mapToObj(i -> generateCountMap(list.toArray(Transition[]::new), totalCntPerThread))
+                .reduce((map1, map2) -> {
+                    long[] map = new long[numOfStates];
+                    for (int i = 0; i < numOfStates; i++) {
+                        map[i] = map1[i] + map2[i];
+                    }
+                    return map;
+                })
+                .orElseThrow();
+
+        List<Transition> newList = new ArrayList<>();
+        for (Transition tran : list) {
+            int next = tran.state;
+            double probability = cntMap[next] * 1.0 / totalCnt;
+            newList.add(new Transition(next, probability));
+        }
+        samplingTransitions.put(state, newList);
+    }
+
+    private long[] generateCountMap(Transition[] list, long totalCnt) {
+        long[] cntMap = new long[numOfStates];
         Random random = new Random();
         for (long i = 0; i < totalCnt; i++) {
-            if(i < 0){
-                System.err.println("ERROR: total cnt = " + totalCnt + " too large");
-            }
             double rnd = random.nextDouble();
             double sum = 0;
             for (Transition tran : list) {
@@ -147,30 +169,18 @@ public class Sampling {
                 double probability = tran.probability;
                 sum += probability;
                 if (rnd <= sum) {
-                    if (cntMap.containsKey(next)) {
-                        long cnt = cntMap.get(next);
-                        cnt = cnt+1;
-                        cntMap.replace(next, cnt);
-                    } else {
-                        cntMap.put(next, 1l);
-                    }
+                    cntMap[next] = cntMap[next] + 1;
                     break;
                 }
             }
         }
-        List<Transition> newList = new ArrayList<>();
-        for (Transition tran : list) {
-            int next = tran.state;
-            double probability = cntMap.get(next) * 1.0 / totalCnt;
-            newList.add(new Transition(next, probability));
-        }
-        samplingTransitions.put(state, newList);
+        return cntMap;
     }
 
     public void experiment() {
-        IntStream.range(0, this.numOfStates)
-                .parallel()
-                .forEach(this::singleExperiment);
+        for (int i = 0; i < this.numOfStates; i++) {
+            singleExperiment(i);
+        }
     }
 
     public void printOutput() {
