@@ -23,7 +23,7 @@ for file in $modeldir/*7.tra; do
   echo $fileNameSim
 
   #repeat 5 times for each model
-  for i in {1..2}
+  for i in {5..5}
   do
     filename="$fileNameSim"-"$i"
     fileLog="$resultdir"/"$filename".log
@@ -36,7 +36,7 @@ for file in $modeldir/*7.tra; do
       sampleTra="$resultdir"/sample-"$filename".tra
 
       #echo "Sampling $filename"
-      java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta 
+      #java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
 
       for epsilon2 in 0.00001 0.0001 0.001 0.01 0.1
       do
@@ -44,10 +44,17 @@ for file in $modeldir/*7.tra; do
         outLabLocal="$resultdir"/local-"$filename"-"$epsilon2".lab
         outTraLocal="$resultdir"/local-"$filename"-"$epsilon2".tra
 
+        outLabLocal2="$resultdir"/local2-"$filename"-"$epsilon2".lab
+        outTraLocal2="$resultdir"/local2-"$filename"-"$epsilon2".tra
+
         outLabApprox="$resultdir"/approx-"$filename"-"$epsilon2".lab
         outTraApprox="$resultdir"/approx-"$filename"-"$epsilon2".tra
+
         #echo "Local Distance $filename"
-        java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2 
+        java -classpath "$classdir" LocalDistanceMerge $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2
+
+        #echo "Optimized Local Distance $filename"
+        java -classpath "$classdir" Merging $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
       
         #echo "Approx Partition Refinement $filename"
         java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2 

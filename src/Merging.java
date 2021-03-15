@@ -217,9 +217,9 @@ public class Merging {
     public void writeOutputToFile() {
         output1.println(this.newNumOfStates + " " + this.newNumOfTrans);
 
-        output0.println(this.labelMap.values());
-        for (int i : this.labelMap.keySet()) {
-            output0.println(i + ": " + this.labelMap.get(i));
+        output0.println(this.newLabelMap.values());
+        for (int i : this.newLabelMap.keySet()) {
+            output0.println(i + ": " + this.newLabelMap.get(i));
         }
 
         for (int i : this.newTransitions.keySet()) {
@@ -484,12 +484,12 @@ public class Merging {
     public static void main(String[] args) {
         Merging merge = new Merging();
         merge.readFile(args);
-        //System.out.println("**** input local distance ****");
+        //System.out.println("**** input optimized local distance ****");
         //merge.printInputSimple();
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        System.out.println("************ output local distance quotient ************");
+        System.out.println("************ output optimized local distance quotient ************");
         merge.printOutputSimple();
 
         //merge states
@@ -498,7 +498,7 @@ public class Merging {
         }
         merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
 
-        System.out.println("************ output local distance merging ************");
+        System.out.println("************ output optimized local distance merging ************");
         merge.printOutputSimple();
 
         merge.smoothTransitions(merge.newTransitions);
