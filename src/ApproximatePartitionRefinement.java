@@ -397,8 +397,8 @@ public class ApproximatePartitionRefinement {
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        System.out.println("************ output approx partition-refinement quotient ************");
-        merge.printOutputSimple();
+        //System.out.println("************ output approx partition-refinement quotient ************");
+        //merge.printOutputSimple();
 
         //merge states
         while (merge.approximatePartitionRefine(merge.newTransitions, merge.newLabelMap)) {

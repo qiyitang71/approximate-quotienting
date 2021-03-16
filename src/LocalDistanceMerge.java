@@ -445,6 +445,7 @@ public class LocalDistanceMerge {
     public static void main(String[] args) {
         LocalDistanceMerge merge = new LocalDistanceMerge();
         merge.readFile(args);
+
         //System.out.println("**** input local distance ****");
         //merge.printInputSimple();
 

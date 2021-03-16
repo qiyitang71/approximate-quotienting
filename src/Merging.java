@@ -489,8 +489,8 @@ public class Merging {
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        System.out.println("************ output optimized local distance quotient ************");
-        merge.printOutputSimple();
+        //System.out.println("************ output optimized local distance quotient ************");
+        //merge.printOutputSimple();
 
         //merge states
         while (merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap)) {
