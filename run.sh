@@ -3,20 +3,21 @@
 working_folder="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
 srcdir="$working_folder"/src
 classdir="$working_folder"/bin
-modeldir="$working_folder"/models/Herman
+model=Leader
+modeldir="$working_folder"/models/$model
 
 # compile
 javac -classpath "$classdir" "$srcdir"/*.java -d "$classdir"
 
 # run the experiments
-for epsilon1 in 0.0001 0.001 0.01 0.1
+for epsilon1 in 0.00001 0.0001 0.001 0.01 0.1
 do
   echo "epsilon1=$epsilon1"
   delta=0.01
 
-  resultdir="$working_folder"/results/Herman"$epsilon1"
-  resultdir2="$working_folder"/results/Herman-Exact"$epsilon1"
-  sampledir="$working_folder"/results/Herman-Sample"$epsilon1"
+  resultdir="$working_folder"/results/"$model$epsilon1"
+  resultdir2="$working_folder"/results/"$model"-Exact"$epsilon1"
+  sampledir="$working_folder"/results/"$model"-Sample"$epsilon1"
 
   mkdir -p $resultdir
   mkdir -p $resultdir2
