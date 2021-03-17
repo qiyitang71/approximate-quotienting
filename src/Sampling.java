@@ -126,14 +126,16 @@ public class Sampling {
 
     public void singleExperiment(int state) {
         List<Transition> list = transitions.get(state);
-        /*int numTran = list.size();
+        int numTran = list.size();
         if (numTran == 1) {
             samplingTransitions.put(state, list);
             return;
-        }*/
+        }
 
         int threads = 12;
-        long totalCntPerThread = (long) Math.ceil( Math.log(2.0/this.delta2)/ (this.epsilon * this.epsilon * 2) / threads);
+        //assume we know the successive states: delta/numTran
+        //otherwise: delta/mStoc - mStoc is the number of stochastic states in the system
+        long totalCntPerThread = (long) Math.ceil( Math.log(2.0 * numTran/this.delta)/ (this.epsilon * this.epsilon * 2) / threads);
         long totalCnt = totalCntPerThread * threads;
         System.err.println("state: " + state + "/" + numOfStates + ", total cnt = " + totalCnt);
 
@@ -178,14 +180,6 @@ public class Sampling {
     }
 
     public void experiment() {
-        int mStoc = 0;
-        for(int i: this.transitions.keySet()){
-            if(this.transitions.get(i).size() > 1){
-                mStoc++;
-            }
-        }
-        this.delta2 = this.delta/mStoc;
-
         for (int i = 0; i < this.numOfStates; i++) {
             singleExperiment(i);
         }
