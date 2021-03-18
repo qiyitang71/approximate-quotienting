@@ -377,37 +377,42 @@ public class LocalDistanceMerge {
     }
 
     public StateTriplet getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap,  List<List<Integer>> partition) {
-        double min = 2;
-        StateTriplet st = null;
+        List<StateTriplet> triplets = new ArrayList<>();
+
         for (List<Integer> list : partition) {
             if (list.size() <= 1) continue;
             for (int i = 0; i < list.size(); i++) {
                 for (int j = 0; j < i; j++) {
                     for(int k =0; k <= j; k++) {
-                        List<List<Integer>> localPartition = createInitialPartition(trans, lMap);
                         int s1 = list.get(i);
                         int s2 = list.get(j);
                         int s3 = list.get(k);
-                        StateTriplet stateTriplet = new StateTriplet(s1,s2,s3);
-                        localPartition = splitWithTriplet(stateTriplet, localPartition);
-                        int size;
-                        do {
-                            size = localPartition.size();
-                            localPartition = split(s1, trans, localPartition);
-                        } while (localPartition.size() != size);
-
-                        Distribution d1 = getDistributionOnPartitions(trans, s1, localPartition);
-                        Distribution d2 = getDistributionOnPartitions(trans, s2, localPartition);
-                        double localDistance = 2 * computeTVDistance(d1, d2);//l1 distance
-                        if (localDistance < min && localDistance < epsilon2) {
-                            st = stateTriplet;
-                            min = localDistance;
-                        }
+                        triplets.add(new StateTriplet(s1,s2,s3));
                     }
                 }
             }
         }
-        return st;
+
+        return triplets.stream().parallel()
+                .map(triplet -> getMinLocalDistanceHelper(trans, lMap, triplet))
+                .filter(d -> d.distance < epsilon2)
+                .min(Comparator.comparingDouble(d -> d.distance))
+                .map(d -> d.stateTriplet)
+                .orElse(null);
+    }
+
+    public TripletAndDistance getMinLocalDistanceHelper(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap, StateTriplet stateTriplet) {
+        List<List<Integer>> localPartition = createInitialPartition(trans, lMap);
+        localPartition = splitWithTriplet(stateTriplet, localPartition);
+        int size;
+        do {
+            size = localPartition.size();
+            localPartition = split(stateTriplet.state1, trans, localPartition);
+        } while (localPartition.size() != size);
+
+        Distribution d1 = getDistributionOnPartitions(trans, stateTriplet.state1, localPartition);
+        Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state2, localPartition);
+        return new TripletAndDistance(stateTriplet, 2 * computeTVDistance(d1, d2));
     }
 
 
@@ -474,5 +479,15 @@ public class LocalDistanceMerge {
         merge.smoothTransitions(merge.newTransitions);
 
         merge.writeOutputToFile();
+    }
+
+    private static class TripletAndDistance {
+        StateTriplet stateTriplet;
+        double distance;
+
+        public TripletAndDistance(StateTriplet stateTriplet, double distance) {
+            this.stateTriplet = stateTriplet;
+            this.distance = distance;
+        }
     }
 }
