@@ -188,11 +188,9 @@ public class LocalDistanceMerge {
         output1.println();
     }
 
-    public List<List<Integer>> partition;
-
     //partition the states by their labels
-    public void createInitialPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
-        partition = new ArrayList<>();
+    public List<List<Integer>> createInitialPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+        List<List<Integer>> partition = new ArrayList<>();
 
         for (int state : trans.keySet()) {
             boolean isAdd = false;
@@ -211,11 +209,13 @@ public class LocalDistanceMerge {
                 partition.add(list);
             }
         }
+
+        return partition;
     }
 
     //if s1 < 0 then it is normal partition
     // return true if split; return false if fixpoint reached
-    public boolean split(int s1, Map<Integer, Map<Integer, Double>> trans) {
+    public List<List<Integer>> split(int s1, Map<Integer, Map<Integer, Double>> trans, List<List<Integer>> partition) {
 
         List<List<Integer>> newPartition = new ArrayList<>();
         List<List<Integer>> tmpPartition = new ArrayList<>(partition);
@@ -268,22 +268,21 @@ public class LocalDistanceMerge {
             newPartition.addAll(splitPartition);
         }
 
-        if (partition.size() == newPartition.size()) {
-            return false;
-        }
-
-        partition = newPartition;
-        return true;
+        return newPartition;
     }
 
     public void partitionRefine(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
-        createInitialPartition(trans, lMap);
-        while (split(-1, trans)) {
-        }
-        mergePartition(trans, lMap);
+        List<List<Integer>> partition = createInitialPartition(trans, lMap);
+        int size;
+        do {
+            size = partition.size();
+            partition = split(-1, trans, partition);
+        } while (partition.size() != size);
+
+        mergeByPartition(trans, lMap, partition);
     }
 
-    public void mergePartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+    public void mergeByPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap, List<List<Integer>> partition) {
         this.newNumOfStates = partition.size();
         this.newLabelMap = new HashMap<>();
         this.newNumOfTrans = 0;
@@ -336,7 +335,7 @@ public class LocalDistanceMerge {
 //        this.transitions = this.newTransitions;
 //    }
 
-    public Distribution getDistributionOnPatitions(Map<Integer, Map<Integer, Double>> trans, int state) {
+    public Distribution getDistributionOnPartitions(Map<Integer, Map<Integer, Double>> trans, int state, List<List<Integer>> partition) {
         int size = partition.size();
         Distribution distr = new Distribution(size);
         for (int i = 0; i < size; i++) {
@@ -352,11 +351,11 @@ public class LocalDistanceMerge {
         return distr;
     }
 
-    public void splitWithTriplet(StateTriplet stateTriplet) {
+    public  List<List<Integer>> splitWithTriplet(StateTriplet stateTriplet,  List<List<Integer>> partition) {
         int s1 = stateTriplet.state1; int s2 = stateTriplet.state2; int s3 = stateTriplet.state3;
         List<List<Integer>> newPartition = new ArrayList<>();
-        for (int i = 0; i < this.partition.size(); i++) {
-            List<Integer> list = this.partition.get(i);
+        for (int i = 0; i < partition.size(); i++) {
+            List<Integer> list = partition.get(i);
             if (list.contains(s1)) {
                 List<Integer> l1 = new ArrayList<>();
                 l1.add(s1);
@@ -374,10 +373,10 @@ public class LocalDistanceMerge {
                 newPartition.add(list);
             }
         }
-        this.partition = newPartition;
+        return newPartition;
     }
 
-    public StateTriplet getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
+    public StateTriplet getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap,  List<List<Integer>> partition) {
         double min = 2;
         StateTriplet st = null;
         for (List<Integer> list : partition) {
@@ -385,16 +384,20 @@ public class LocalDistanceMerge {
             for (int i = 0; i < list.size(); i++) {
                 for (int j = 0; j < i; j++) {
                     for(int k =0; k <= j; k++) {
-                        createInitialPartition(trans, lMap);
+                        List<List<Integer>> localPartition = createInitialPartition(trans, lMap);
                         int s1 = list.get(i);
                         int s2 = list.get(j);
                         int s3 = list.get(k);
                         StateTriplet stateTriplet = new StateTriplet(s1,s2,s3);
-                        splitWithTriplet(stateTriplet);
-                        while (split(s1, trans)) {
-                        }
-                        Distribution d1 = getDistributionOnPatitions(trans, s1);
-                        Distribution d2 = getDistributionOnPatitions(trans, s2);
+                        localPartition = splitWithTriplet(stateTriplet, localPartition);
+                        int size;
+                        do {
+                            size = localPartition.size();
+                            localPartition = split(s1, trans, localPartition);
+                        } while (localPartition.size() != size);
+
+                        Distribution d1 = getDistributionOnPartitions(trans, s1, localPartition);
+                        Distribution d2 = getDistributionOnPartitions(trans, s2, localPartition);
                         double localDistance = 2 * computeTVDistance(d1, d2);//l1 distance
                         if (localDistance < min && localDistance < epsilon2) {
                             st = stateTriplet;
@@ -410,17 +413,22 @@ public class LocalDistanceMerge {
 
     //return false if no merge
     public boolean mergeSinglePair(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
-        createInitialPartition(trans, lMap);
-        StateTriplet stateTriplet = getMinLocalDistance(trans, lMap);
-        Map<Integer, Map<Integer, Double>> tmpTransitions = new HashMap<>(trans);
+        List<List<Integer>> partition = createInitialPartition(trans, lMap);
+        StateTriplet stateTriplet = getMinLocalDistance(trans, lMap, partition);
         if (stateTriplet == null) {
             return false;
         }
 
-        createInitialPartition(trans, lMap);
-        splitWithTriplet(stateTriplet);
-        while (split(stateTriplet.state1, trans)) {}
-        mergePartition(trans, lMap);
+        partition = createInitialPartition(trans, lMap);
+        partition = splitWithTriplet(stateTriplet, partition);
+
+        int size;
+        do {
+            size = partition.size();
+            partition = split(stateTriplet.state1, trans, partition);
+        } while (partition.size() != size);
+
+        mergeByPartition(trans, lMap, partition);
         iter++;
         return true;
     }
@@ -467,5 +475,4 @@ public class LocalDistanceMerge {
 
         merge.writeOutputToFile();
     }
-
 }
