@@ -279,10 +279,10 @@ public class LocalDistanceMerge {
             partition = split(-1, trans, partition);
         } while (partition.size() != size);
 
-        mergeByPartition(trans, lMap, partition);
+        mergeByPartition(trans, lMap, partition, null);
     }
 
-    public void mergeByPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap, List<List<Integer>> partition) {
+    public void mergeByPartition(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap, List<List<Integer>> partition, StateTriplet stateTriplet) {
         this.newNumOfStates = partition.size();
         this.newLabelMap = new HashMap<>();
         this.newNumOfTrans = 0;
@@ -290,22 +290,24 @@ public class LocalDistanceMerge {
         for (int i = 0; i < this.newNumOfStates; i++) {
             List<Integer> currentSet = partition.get(i);
             int rdState = currentSet.get(0);
+            //set the label for the new state
             int label = lMap.getOrDefault(rdState, -1);
             if(label != -1)  this.newLabelMap.put(i, label);
+
+            Distribution distr = getDistributionOnPartitions(trans, rdState, partition);
+
+            //set the transitions
+            if(stateTriplet != null && currentSet.contains(stateTriplet.state1) && (stateTriplet.state2 != stateTriplet.state3)){
+                distr = getDistributionOnPartitions(trans, stateTriplet.state3, partition);
+            }else if (stateTriplet != null && currentSet.contains(stateTriplet.state1) && (stateTriplet.state2 == stateTriplet.state3)){
+                Distribution d1 = getDistributionOnPartitions(trans, stateTriplet.state1, partition);
+                Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state1, partition);
+                distr = getAverageDistribution(d1, d2);
+            }
+
             for (int j = 0; j < this.newNumOfStates; j++) {
-                List<Integer> l = partition.get(j);
-                double sumTransition = 0;
-                for(int k: currentSet) {
-                    for (int next : l) {
-                        if (trans.get(k).containsKey(next)) {
-                            sumTransition += trans.get(k).get(next);
-                        }
-                    }
-                }
-                if (sumTransition > 0) {
-                    this.newNumOfTrans++;
-                    double avgTransition = sumTransition/currentSet.size();
-                    this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, avgTransition);
+                if(distr.getProbability(j) > 0) {
+                    this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, distr.getProbability(j));
                 }
             }
         }
@@ -328,6 +330,18 @@ public class LocalDistanceMerge {
         return sum;
     }
 
+    public Distribution getAverageDistribution(Distribution d1, Distribution d2) {
+        if (d1.size != d2.size) {
+            System.err.println("tv distance size match");
+            return null;
+        }
+        double [] a3 = new double[d1.size];
+
+        for (int i = 0; i < d1.size; i++) {
+            a3[i] = (d1.getProbability(i) + d2.getProbability(i))/2.0;
+        }
+        return new Distribution(a3);
+    }
 //    public void updateSystem() {
 //        this.states = this.newStates;
 //        this.labelMap = this.newLabelMap;
@@ -412,7 +426,14 @@ public class LocalDistanceMerge {
 
         Distribution d1 = getDistributionOnPartitions(trans, stateTriplet.state1, localPartition);
         Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state2, localPartition);
-        return new TripletAndDistance(stateTriplet, 2 * computeTVDistance(d1, d2));
+
+        if(stateTriplet.state2 == stateTriplet.state3){
+            return new TripletAndDistance(stateTriplet, computeTVDistance(d1, d2));
+        }else{
+            Distribution d3 = getDistributionOnPartitions(trans, stateTriplet.state3, localPartition);
+            double tmp = Math.min(2*computeTVDistance(d1, d3), 2*computeTVDistance(d2, d3));
+            return new TripletAndDistance(stateTriplet, tmp);
+        }
     }
 
 
@@ -433,7 +454,7 @@ public class LocalDistanceMerge {
             partition = split(stateTriplet.state1, trans, partition);
         } while (partition.size() != size);
 
-        mergeByPartition(trans, lMap, partition);
+        mergeByPartition(trans, lMap, partition, stateTriplet);
         iter++;
         return true;
     }
