@@ -6,30 +6,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
 
-class Transition {
-     int state;
-     double probability;
 
-    Transition(int state, double probability) {
-        this.state = state;
-        this.probability = probability;
-    }
-    public void updateProbability(double probability){
-        this.probability = probability;
-    }
-    public int getState(){
-        return this.state;
-    }
-}
-
-public class Sampling {
+public class PerturbLMC {
     public int numOfStates;
     public int numOfTrans;
     private Map<Integer, List<Transition>> transitions;
-    private Map<Integer, List<Transition>> samplingTransitions = new ConcurrentHashMap<>();
+    private Map<Integer, List<Transition>> perturbTransitions = new ConcurrentHashMap<>();
 
     private Map<Integer, Integer> labelMap;
-    public double epsilon, delta, delta2;
+    public double epsilon, delta;
     PrintStream output0, output1 = null;
 
 
@@ -134,55 +119,52 @@ public class Sampling {
         List<Transition> list = transitions.get(state);
         int numTran = list.size();
         if (numTran == 1) {
-            samplingTransitions.put(state, list);
+            perturbTransitions.put(state, list);
             return;
         }
-
-        int threads = 12;
-        //assume we know the successive states: delta/numTran
-        //otherwise: delta/mStoc - mStoc is the number of stochastic states in the system
-        long totalCntPerThread = (long) Math.ceil( Math.log(2.0 * numTran/this.delta)/ (this.epsilon * this.epsilon * 2) / threads);
-        long totalCnt = totalCntPerThread * threads;
-        System.err.println("state: " + state + "/" + numOfStates + ", total cnt = " + totalCnt);
-
-        long[] cntMap = IntStream.range(0, threads)
-                .parallel()
-                .mapToObj(i -> generateCountMap(list.toArray(Transition[]::new), totalCntPerThread))
-                .reduce((map1, map2) -> {
-                    long[] map = new long[numOfStates];
-                    for (int i = 0; i < numOfStates; i++) {
-                        map[i] = map1[i] + map2[i];
-                    }
-                    return map;
-                })
-                .orElseThrow();
-
+        //initialize to the original transition probability distribution
         List<Transition> newList = new ArrayList<>();
         for (Transition tran : list) {
             int next = tran.state;
-            double probability = cntMap[next] * 1.0 / totalCnt;
-            newList.add(new Transition(next, probability));
+            newList.add(new Transition(next, tran.probability));
         }
-        samplingTransitions.put(state, newList);
-    }
 
-    private long[] generateCountMap(Transition[] list, long totalCnt) {
-        long[] cntMap = new long[numOfStates];
         Random random = new Random();
-        for (long i = 0; i < totalCnt; i++) {
-            double rnd = random.nextDouble();
-            double sum = 0;
-            for (Transition tran : list) {
-                int next = tran.state;
-                double probability = tran.probability;
-                sum += probability;
-                if (rnd <= sum) {
-                    cntMap[next] = cntMap[next] + 1;
-                    break;
-                }
-            }
+        double rnd = random.nextDouble();
+        double error = 0;
+        if(rnd <= (1-delta)){
+            error = random.nextDouble()*epsilon;
+        }else{
+            error = Math.min(random.nextDouble()+epsilon, 1);
         }
-        return cntMap;
+        //System.out.println("error = " + error);
+
+        int count = 0;
+        while(error>0){
+            count++;
+            int tmpTran = random.nextInt(numTran);
+            Transition tran = newList.get(tmpTran);
+
+            double currError = error * random.nextDouble();
+
+            if(count == numTran) {
+                currError = error;
+            }
+            //System.out.println("currError = " + currError);
+
+            error -= currError;
+            if(random.nextDouble() <= 0.5){
+                //increase
+                tran.updateProbability(tran.probability + currError);
+            }else{
+                //decrease
+                tran.updateProbability(tran.probability - currError);
+            }
+            //System.out.println("state " +state+ "->" + tran.getState()+ " with " + tran.probability);
+
+        }
+
+        perturbTransitions.put(state, newList);
     }
 
     public void experiment() {
@@ -199,8 +181,8 @@ public class Sampling {
         }
         System.out.println();
 
-        for (int i : this.samplingTransitions.keySet()) {
-            List<Transition> list = samplingTransitions.get(i);
+        for (int i : this.perturbTransitions.keySet()) {
+            List<Transition> list = perturbTransitions.get(i);
             for (Transition tran : list) {
                 System.out.println(i + " " + tran.state + " " + tran.probability);
             }
@@ -257,8 +239,8 @@ public class Sampling {
             output0.println(i + ": " + this.labelMap.get(i));
         }
 
-        for (int i : this.samplingTransitions.keySet()) {
-            List<Transition> list = samplingTransitions.get(i);
+        for (int i : this.perturbTransitions.keySet()) {
+            List<Transition> list = perturbTransitions.get(i);
             for (Transition tran : list) {
                 output1.println(i + " " + tran.state + " " + tran.probability);
             }
@@ -267,8 +249,8 @@ public class Sampling {
     }
 
     public void smoothTransitions() {
-        for (int state : this.samplingTransitions.keySet()) {
-            List<Transition> lst = this.samplingTransitions.get(state);
+        for (int state : this.perturbTransitions.keySet()) {
+            List<Transition> lst = this.perturbTransitions.get(state);
             int len = lst.size();
             double sum = 0;
             for (int i = 0; i < len; i++) {
@@ -283,13 +265,14 @@ public class Sampling {
     }
 
     public static void main(String[] args) {
-        Sampling sampling = new Sampling();
-        sampling.readFile(args);
-        sampling.printInputSimple();
-        sampling.experiment();
-        sampling.printOutputSimple();
-        sampling.smoothTransitions();
-        sampling.writeToFile();
+        PerturbLMC perturbing = new PerturbLMC();
+        perturbing.readFile(args);
+        perturbing.printInputSimple();
+        perturbing.experiment();
+        //perturbing.printOutputSimple();
+        perturbing.smoothTransitions();
+        perturbing.printOutputSimple();
+        perturbing.writeToFile();
     }
 
 }

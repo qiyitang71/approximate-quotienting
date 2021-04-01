@@ -301,12 +301,13 @@ public class LocalDistanceMerge {
                 distr = getDistributionOnPartitions(trans, stateTriplet.state3, partition);
             }else if (stateTriplet != null && currentSet.contains(stateTriplet.state1) && (stateTriplet.state2 == stateTriplet.state3)){
                 Distribution d1 = getDistributionOnPartitions(trans, stateTriplet.state1, partition);
-                Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state1, partition);
+                Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state2, partition);
                 distr = getAverageDistribution(d1, d2);
             }
 
             for (int j = 0; j < this.newNumOfStates; j++) {
                 if(distr.getProbability(j) > 0) {
+                    this.newNumOfTrans++;
                     this.newTransitions.computeIfAbsent(i, x -> new HashMap<>()).put(j, distr.getProbability(j));
                 }
             }
@@ -431,7 +432,7 @@ public class LocalDistanceMerge {
             return new TripletAndDistance(stateTriplet, computeTVDistance(d1, d2));
         }else{
             Distribution d3 = getDistributionOnPartitions(trans, stateTriplet.state3, localPartition);
-            double tmp = Math.min(2*computeTVDistance(d1, d3), 2*computeTVDistance(d2, d3));
+            double tmp = Math.max(2*computeTVDistance(d1, d3), 2*computeTVDistance(d2, d3));
             return new TripletAndDistance(stateTriplet, tmp);
         }
     }
@@ -502,7 +503,7 @@ public class LocalDistanceMerge {
         merge.writeOutputToFile();
     }
 
-    private static class TripletAndDistance {
+ /*   public static class TripletAndDistance {
         StateTriplet stateTriplet;
         double distance;
 
@@ -510,5 +511,16 @@ public class LocalDistanceMerge {
             this.stateTriplet = stateTriplet;
             this.distance = distance;
         }
+    }
+  */
+}
+
+class TripletAndDistance {
+    StateTriplet stateTriplet;
+    double distance;
+
+    public TripletAndDistance(StateTriplet stateTriplet, double distance) {
+        this.stateTriplet = stateTriplet;
+        this.distance = distance;
     }
 }

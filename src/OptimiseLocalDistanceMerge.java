@@ -436,37 +436,47 @@ public class OptimiseLocalDistanceMerge {
 
     public StateTriplet getMinLocalDistance(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap,  List<List<Integer>> partition) {
         List<StateTriplet> triplets = new ArrayList<>();
-        double minDistance = 2;
-        StateTriplet minTriplet = null;
+
         for (List<Integer> list : partition) {
             if (list.size() <= 1) continue;
             for (int i = 0; i < list.size(); i++) {
                 for (int j = 0; j < i; j++) {
                     int s1 = list.get(i);
                     int s2 = list.get(j);
-                    StateTriplet stateTriplet = new StateTriplet(s1, s2, s2);
-                    List<List<Integer>> localPartition = createInitialPartition(trans, lMap);
-                    localPartition = splitWithTriplet(stateTriplet, localPartition);
-                    int size;
-                    do {
-                        size = localPartition.size();
-                        localPartition = split(s1, trans, localPartition);
-                    } while (localPartition.size() != size);
-                    Distribution d1 = getDistributionOnPartitions(trans, s1, localPartition);
-                    Distribution d2 = getDistributionOnPartitions(trans, s2, localPartition);
-                    double distance = computeTVDistance(d1, d2);
-                    if(distance < epsilon2 && distance < minDistance){
-                        minDistance = distance;
-                        minTriplet = stateTriplet;
-                    }
+                    triplets.add(new StateTriplet(s1,s2,s2));
                 }
             }
         }
 
-        return minTriplet;
+        return triplets.stream().parallel()
+                .map(triplet -> getMinLocalDistanceHelper(trans, lMap, triplet))
+                .filter(d -> d.distance < epsilon2)
+                .min(Comparator.comparingDouble(d -> d.distance))
+                .map(d -> d.stateTriplet)
+                .orElse(null);
     }
 
 
+    public TripletAndDistance getMinLocalDistanceHelper(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap, StateTriplet stateTriplet) {
+        List<List<Integer>> localPartition = createInitialPartition(trans, lMap);
+        localPartition = splitWithTriplet(stateTriplet, localPartition);
+        int size;
+        do {
+            size = localPartition.size();
+            localPartition = split(stateTriplet.state1, trans, localPartition);
+        } while (localPartition.size() != size);
+
+        Distribution d1 = getDistributionOnPartitions(trans, stateTriplet.state1, localPartition);
+        Distribution d2 = getDistributionOnPartitions(trans, stateTriplet.state2, localPartition);
+
+        if(stateTriplet.state2 == stateTriplet.state3){
+            return new TripletAndDistance(stateTriplet, computeTVDistance(d1, d2));
+        }else{
+            Distribution d3 = getDistributionOnPartitions(trans, stateTriplet.state3, localPartition);
+            double tmp = Math.max(2*computeTVDistance(d1, d3), 2*computeTVDistance(d2, d3));
+            return new TripletAndDistance(stateTriplet, tmp);
+        }
+    }
 
     //return false if no merge
     public boolean mergeSinglePair(Map<Integer, Map<Integer, Double>> trans, Map<Integer, Integer> lMap) {
@@ -516,11 +526,12 @@ public class OptimiseLocalDistanceMerge {
 
         //compute probabilistic bisimulation
         merge.partitionRefine(merge.transitions, merge.labelMap);
-        //System.out.println("************ output optimized local distance quotient ************");
-        //merge.printOutputSimple();
+        System.out.println("************ output optimized local distance quotient ************");
+        merge.printOutputSimple();
 
         //merge states
         while (merge.mergeSinglePair(merge.newTransitions, merge.newLabelMap)) {
+            merge.printOutputSimple();
             merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
         }
         merge.partitionRefine(merge.newTransitions, merge.newLabelMap);
