@@ -195,10 +195,10 @@ public class PerturbLMC {
 
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
-        for (int i : this.labelMap.keySet()) {
+        /*for (int i : this.labelMap.keySet()) {
             System.out.print(i + ": " + this.labelMap.get(i) + " ");
         }
-        System.out.println();
+        System.out.println();*/
 
     }
 
@@ -224,10 +224,10 @@ public class PerturbLMC {
 
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
-        for (int i : this.labelMap.keySet()) {
+        /*for (int i : this.labelMap.keySet()) {
             System.out.print(i + ": " + this.labelMap.get(i) + " ");
         }
-        System.out.println();
+        System.out.println();*/
 
     }
 

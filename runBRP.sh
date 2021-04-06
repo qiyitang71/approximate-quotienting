@@ -3,14 +3,14 @@
 working_folder="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
 srcdir="$working_folder"/src
 classdir="$working_folder"/bin
-model=BRP
+model=EGL
 modeldir="$working_folder"/models/$model
 
 # compile
 javac -classpath "$classdir" "$srcdir"/*.java -d "$classdir"
 
 # run the experiments
-for epsilon1 in 0.00001 0.0001 0.001 0.01 0.1
+for epsilon1 in 0.00001 0.0001 0.001 0.01
 do
   echo "epsilon1=$epsilon1"
   delta=0.01
@@ -66,12 +66,12 @@ do
           outTraApprox="$resultdir"/approx-"$filename"-"$epsilon2".tra
 
           echo "Exact Model"
-           #echo "Local Distance $filename"
+          #echo "Local Distance $filename"
 
           #java -classpath "$classdir" LocalDistanceMerge $inputLab $inputTra $outLabLocalExact $outTraLocalExact $epsilon2
 
           #echo "Optimized Local Distance $filename"
-          java -classpath "$classdir" OptimiseLocalDistanceMerge $inputLab $inputTra $outLabLocal2Exact $outTraLocal2Exact $epsilon2
+          #java -classpath "$classdir" OptimiseLocalDistanceMerge $inputLab $inputTra $outLabLocal2Exact $outTraLocal2Exact $epsilon2
 
           #echo "Approx Partition Refinement $filename"
           java -classpath "$classdir" ApproximatePartitionRefinement $inputLab $inputTra $outLabApproxExact $outTraApproxExact $epsilon2
@@ -82,10 +82,13 @@ do
           #java -classpath "$classdir" LocalDistanceMerge $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2
 
           #echo "Optimized Local Distance $filename"
-          java -classpath "$classdir" OptimiseLocalDistanceMerge $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
+          #java -classpath "$classdir" OptimiseLocalDistanceMerge $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
 
           #echo "Approx Partition Refinement $filename"
           java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2
+
+          #echo "Optimized Local Distance $filename"
+          #java -classpath "$classdir" OptimiseLocalDistanceMerge $outLabApprox $outTraApprox $outLabLocal2 $outTraLocal2 $epsilon2
 
           echo ""
         done

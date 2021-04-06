@@ -155,19 +155,19 @@ public class LocalDistanceMerge {
     public void printInputSimple() {
         System.out.println(this.numOfStates + " " + this.numOfTrans);
 
-        for (int i : this.labelMap.keySet()) {
+        /*for (int i : this.labelMap.keySet()) {
             System.out.print(i + ": " + this.labelMap.get(i) + "  ");
         }
-        System.out.println();
+        System.out.println();*/
     }
 
     public void printOutputSimple() {
         System.out.println(this.newNumOfStates + " " + this.newNumOfTrans);
 
-        for (int i : this.newLabelMap.keySet()) {
+        /*for (int i : this.newLabelMap.keySet()) {
             System.out.print(i + ": " + this.newLabelMap.get(i) + "  ");
         }
-        System.out.println();
+        System.out.println();*/
         System.out.println("Number of iterations = " + iter);
     }
 
