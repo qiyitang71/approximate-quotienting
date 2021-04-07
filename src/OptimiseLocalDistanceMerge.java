@@ -507,16 +507,25 @@ public class OptimiseLocalDistanceMerge {
             double sum = 0;
             int i = 0;
             for (int next : map.keySet()) {
+
                 if (i == len - 1) {
                     map.put(next, 1 - sum);
                     break;
                 }
-                sum += map.get(next);
+
+                double prob = map.get(next);
+
+                if(prob < 0 || prob> 1){
+                    System.out.println("Probability " + state + "->" + i + " with " + prob + " not right");
+                    System.exit(1);
+                }
+
+                sum += prob;
                 i++;
             }
-
         }
     }
+
 
     public static void main(String[] args) {
         OptimiseLocalDistanceMerge merge = new OptimiseLocalDistanceMerge();

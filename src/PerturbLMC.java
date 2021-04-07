@@ -135,37 +135,53 @@ public class PerturbLMC {
         if(rnd <= (1-delta)){
             error = random.nextDouble()*epsilon;
         }else{
-            error = Math.min(random.nextDouble()+epsilon, 1);
+            error = Math.min(2 * epsilon, 1);
         }
         //System.out.println("error = " + error);
 
+        //increase
+        double halfError = error/2.0;
         int count = 0;
-        while(error>0){
+        while(halfError>0){
             count++;
             int tmpTran = random.nextInt(numTran);
             Transition tran = newList.get(tmpTran);
 
-            double currError = error * random.nextDouble();
+            double currError = halfError * random.nextDouble();
 
             if(count == numTran) {
-                currError = error;
+                currError = halfError;
             }
             //System.out.println("currError = " + currError);
 
-            if(random.nextDouble() <= 0.5 && tran.probability >= currError){
-                //decrease
-                tran.updateProbability(tran.probability - currError);
-                error -= currError;
-
-            }else if((tran.probability + currError) <= 1){
+            if((tran.probability + currError) <= 1){
                 //increase
                 tran.updateProbability(tran.probability + currError);
-                error -= currError;
+                halfError -= currError;
             }
             //System.out.println("state " +state+ "->" + tran.getState()+ " with " + tran.probability);
-
         }
 
+        halfError = error/2.0;
+        while(halfError>0){
+            count++;
+            int tmpTran = random.nextInt(numTran);
+            Transition tran = newList.get(tmpTran);
+
+            double currError = halfError * random.nextDouble();
+
+            if(count == numTran) {
+                currError = halfError;
+            }
+            //System.out.println("currError = " + currError);
+
+            if(tran.probability >= currError){
+                //decrease
+                tran.updateProbability(tran.probability - currError);
+                halfError -= currError;
+            }
+            //System.out.println("state " +state+ "->" + tran.getState()+ " with " + tran.probability);
+        }
         perturbTransitions.put(state, newList);
     }
 
@@ -258,9 +274,17 @@ public class PerturbLMC {
             for (int i = 0; i < len; i++) {
                 if (i == len - 1) {
                     lst.get(i).probability = 1 - sum;
+                    if(lst.get(i).probability < 0 || lst.get(i).probability > 1){
+                        System.out.println("Probability " + state + "->" + i + " with " +lst.get(i).probability + " not right");
+                        System.exit(1);
+                    }
                     break;
                 }
                 sum += lst.get(i).probability;
+                if(lst.get(i).probability < 0 || lst.get(i).probability > 1){
+                    System.out.println("Probability " + state + "->" + i + " with " +lst.get(i).probability + " not right");
+                    System.exit(1);
+                }
             }
 
         }
