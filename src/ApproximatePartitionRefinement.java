@@ -402,6 +402,7 @@ public class ApproximatePartitionRefinement {
 
         //merge states
         while (merge.approximatePartitionRefine(merge.newTransitions, merge.newLabelMap)) {
+            merge.smoothTransitions(merge.newTransitions);
         }
         System.out.println("************ output approx partition-refinement merging ************");
         merge.printOutputSimple();

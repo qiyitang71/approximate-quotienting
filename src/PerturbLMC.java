@@ -152,13 +152,15 @@ public class PerturbLMC {
             }
             //System.out.println("currError = " + currError);
 
-            error -= currError;
-            if(random.nextDouble() <= 0.5){
-                //increase
-                tran.updateProbability(tran.probability + currError);
-            }else{
+            if(random.nextDouble() <= 0.5 && tran.probability >= currError){
                 //decrease
                 tran.updateProbability(tran.probability - currError);
+                error -= currError;
+
+            }else if((tran.probability + currError) <= 1){
+                //increase
+                tran.updateProbability(tran.probability + currError);
+                error -= currError;
             }
             //System.out.println("state " +state+ "->" + tran.getState()+ " with " + tran.probability);
 
