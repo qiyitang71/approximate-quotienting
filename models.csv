@@ -1,4 +1,4 @@
-"model_file,model_consts,states,transitions
+model_file,model_consts,states,transitions
 "brp.pm","N=16, MAX=2",677,867
 "brp.pm","N=16, MAX=3",886,1155
 "brp.pm","N=16, MAX=4",1095,1443
