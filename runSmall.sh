@@ -3,7 +3,9 @@
 working_folder="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
 srcdir="$working_folder"/src
 classdir="$working_folder"/bin
-model=Crowds
+#choose a model name HERE
+#options are {HermanSmall, LeaderSmall} 
+model=LeaderSmall
 modeldir="$working_folder"/models/$model
 
 # compile
@@ -16,9 +18,9 @@ for i in {1..5}; do
   do
     delta=0.01
 
-    resultdir="$working_folder"/results/"$model$epsilon1"
-    resultdir2="$working_folder"/results/"$model"-Exact"$epsilon1"
-    sampledir="$working_folder"/results/"$model"-Sample"$epsilon1"
+    resultdir="$working_folder"/results/"$model"/"$model$epsilon1"
+    resultdir2="$working_folder"/results/"$model"/"$model"-Exact"$epsilon1"
+    sampledir="$working_folder"/results/"$model"/"$model"-Sample"$epsilon1"
 
     mkdir -p $resultdir
     mkdir -p $resultdir2
@@ -42,7 +44,7 @@ for i in {1..5}; do
         sampleTra="$sampledir"/sample-"$filename".tra
 
         echo "Sampling $filename"
-        java -classpath "$classdir" PerturbLMC $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
+        java -classpath "$classdir" Sampling $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
 
         for epsilon2 in 0.00001 0.0001 0.001 0.01 0.1
         do
@@ -67,32 +69,30 @@ for i in {1..5}; do
 
           outLabCombine="$resultdir"/combine-"$filename"-"$epsilon2".lab
           outTraCombine="$resultdir"/combine-"$filename"-"$epsilon2".tra
+          
           echo "Exact Model"
-          #echo "Local Distance $filename"
+          
+          #Local Distance
+          java -classpath "$classdir" LocalDistanceMerge $inputLab $inputTra $outLabLocalExact $outTraLocalExact $epsilon2
 
-          #java -classpath "$classdir" LocalDistanceMerge $inputLab $inputTra $outLabLocalExact $outTraLocalExact $epsilon2
+          #Optimized Local Distance
+          java -classpath "$classdir" OptimiseLocalDistanceMerge $inputLab $inputTra $outLabLocal2Exact $outTraLocal2Exact $epsilon2
 
-          #echo "Optimized Local Distance $filename"
-          #java -classpath "$classdir" OptimiseLocalDistanceMerge $inputLab $inputTra $outLabLocal2Exact $outTraLocal2Exact $epsilon2
-
-          #echo "Approx Partition Refinement $filename"
+          #Approx Partition Refinement
           java -classpath "$classdir" ApproximatePartitionRefinement $inputLab $inputTra $outLabApproxExact $outTraApproxExact $epsilon2
+
           echo ""
+          
           echo "Sample Model"
 
-          #echo "Local Distance $filename"
-          #java -classpath "$classdir" LocalDistanceMerge $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2
+          #Local Distance
+          java -classpath "$classdir" LocalDistanceMerge $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2
 
-          #echo "Optimized Local Distance $filename"
-          #java -classpath "$classdir" OptimiseLocalDistanceMerge $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
+          #Optimized Local Distance
+          java -classpath "$classdir" OptimiseLocalDistanceMerge $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
 
-          #echo "Approx Partition Refinement $filename"
+          #Approx Partition Refinement
           java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2
-
-          #echo "Optimized Local Distance $filename"
-          #java -classpath "$classdir" CombineMerge $sampleLab $sampleTra $outLabCombine $outTraCombine $epsilon2
-
-          #java -classpath "$classdir" OptimiseLocalDistanceMerge $outLabApprox $outTraApprox $outLabLocal2 $outTraLocal2 $epsilon2
 
           echo ""
         done

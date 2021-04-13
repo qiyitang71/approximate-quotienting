@@ -43,7 +43,7 @@ for i in {1..5}; do
         sampleLab="$sampledir"/sample-"$filename".lab
         sampleTra="$sampledir"/sample-"$filename".tra
 
-        echo "Sampling $filename"
+        echo "Perturbing $filename"
         java -classpath "$classdir" PerturbLMC $inputLab $inputTra $sampleLab $sampleTra $epsilon1 $delta
 
         for epsilon2 in 0.00001 0.0001 0.001 0.01 0.1
