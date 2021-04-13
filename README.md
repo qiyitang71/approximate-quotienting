@@ -1,7 +1,7 @@
 # Approximate Minimisation Algorithms 
 
 ## Models
-We evaluate the performance of the approximate minimisation algorithms on several LMCs. These LMCs model randomised algorithms and probabilistic protocols that are part of the probabilistic model checker [PRISM](https://www.prismmodelchecker.org/). The models can be found [here](models.csv).
+We evaluate the performance of the approximate minimisation algorithms on several LMCs. These LMCs model randomised algorithms and probabilistic protocols that are part of the probabilistic model checker [PRISM](https://www.prismmodelchecker.org/). Model stats (parameters, number of states, number of transitions) are summarised into this [table](models.csv).
 
 We call models with less than 300 states as small models, and otherwise large models.
 
