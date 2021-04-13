@@ -43,4 +43,3 @@ model_file,model_consts,states,transitions
 "leader_sync6_3.pm","",3759,4487
 "leader_sync6_4.pm","",20884,24979
 "leader_sync6_5.pm","",78784,94408
-"nand.pm","N=20, K=1",78332,121511
