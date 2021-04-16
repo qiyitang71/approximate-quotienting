@@ -71,13 +71,13 @@ for i in {1..5}; do
           outTraCombine="$resultdir"/combine-"$filename"-"$epsilon2".tra
 
           echo "Exact Model"      
-          #Approx Partition Refinement
+          #Approximate minimisation by using approximate partition refinement on the exact model
           java -classpath "$classdir" ApproximatePartitionRefinement $inputLab $inputTra $outLabApproxExact $outTraApproxExact $epsilon2
           echo ""
 
 
           echo "Sample Model"
-          #Approx Partition Refinement
+          #Approximate minimisation by using approximate partition refinement on the perturbed model
           java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2
           echo ""
         done

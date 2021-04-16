@@ -71,27 +71,21 @@ for i in {1..5}; do
           outTraCombine="$resultdir"/combine-"$filename"-"$epsilon2".tra
           
           echo "Exact Model"
-          
-          #Local Distance
-          java -classpath "$classdir" LocalDistanceMerge $inputLab $inputTra $outLabLocalExact $outTraLocalExact $epsilon2
 
-          #Optimized Local Distance
+          #Approximate minimisation by using local bisimilarity distances on the exact model
           java -classpath "$classdir" OptimiseLocalDistanceMerge $inputLab $inputTra $outLabLocal2Exact $outTraLocal2Exact $epsilon2
 
-          #Approx Partition Refinement
+          #Approximate minimisation by using approximate partition refinement on the exact model
           java -classpath "$classdir" ApproximatePartitionRefinement $inputLab $inputTra $outLabApproxExact $outTraApproxExact $epsilon2
 
           echo ""
           
           echo "Sample Model"
 
-          #Local Distance
-          java -classpath "$classdir" LocalDistanceMerge $sampleLab $sampleTra $outLabLocal $outTraLocal $epsilon2
-
-          #Optimized Local Distance
+          #Approximate minimisation by using local bisimilarity distances on the sampled model
           java -classpath "$classdir" OptimiseLocalDistanceMerge $sampleLab $sampleTra $outLabLocal2 $outTraLocal2 $epsilon2
 
-          #Approx Partition Refinement
+          #Approximate minimisation by using approximate partition refinement on the sampled model
           java -classpath "$classdir" ApproximatePartitionRefinement $sampleLab $sampleTra $outLabApprox $outTraApprox $epsilon2
 
           echo ""
