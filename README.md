@@ -30,4 +30,4 @@ If the model is large (with at least 300 states), go to `runLarge.sh` and replac
 
 
 ## Results
-The full experimental results can be found here: https://docs.google.com/spreadsheets/d/1JJnBYsOTfbC3mXHEWO4AEJG492YoD0yXaAs8DsrwGOA/edit?usp=sharing
+The full experimental results can be found in this [Google Sheet](https://docs.google.com/spreadsheets/d/1JJnBYsOTfbC3mXHEWO4AEJG492YoD0yXaAs8DsrwGOA/edit?usp=sharing).
